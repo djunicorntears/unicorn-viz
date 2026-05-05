@@ -7,6 +7,7 @@ Two sub-modes cycled with a parameter:
 """
 from __future__ import annotations
 
+import math
 import numpy as np
 import moderngl
 
@@ -62,7 +63,6 @@ _N_WAVE = 512
 
 def _bar_colour(i: int, n: int) -> tuple[float, float, float]:
     """HSV-like rainbow across bar index."""
-    import math
     t = i / n
     r = 0.5 + 0.5 * math.sin(t * 6.28 + 0.0)
     g = 0.5 + 0.5 * math.sin(t * 6.28 + 2.09)

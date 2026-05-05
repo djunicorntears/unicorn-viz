@@ -1,4 +1,23 @@
-"""Demo playlist — tracks current effect index and handles advance logic."""
+"""
+Demo playlist — manages the ordered collection of effect classes and tracks
+the currently active index.
+
+Modes
+-----
+``sequential``  Cycles effects in discovery order (alphabetical by class name).
+``random``      Picks a random effect on each advance; can produce repeats.
+
+Pinned sequence
+---------------
+Set ``[playlist] sequence = ["Plasma", "Fire", "Tunnel"]`` in config.toml to
+restrict the playlist to exactly those effects in that order.  Unknown names
+(typos, missing effects) are silently ignored.
+
+Thread safety
+-------------
+All mutating operations (advance, go_prev, go_index, toggle_random) are called
+from the main thread only, so no locking is required.
+"""
 from __future__ import annotations
 
 import random
@@ -16,6 +35,7 @@ class Playlist:
     ) -> None:
         sequence: list[str] = cfg.get("playlist", "sequence", default=[])
         mode: str = cfg.get("demo", "mode", default="sequential")
+        start_name: str = cfg.get("playlist", "start_effect", default="")
 
         if sequence:
             name_map = {cls.__name__: cls for cls in effect_classes}
@@ -25,7 +45,14 @@ class Playlist:
             self._effects = list(effect_classes)
 
         self._mode = mode
+
+        # Find starting index by NAME attribute (display name) or class name
         self._index = 0
+        if start_name:
+            for i, cls in enumerate(self._effects):
+                if cls.NAME == start_name or cls.__name__ == start_name:
+                    self._index = i
+                    break
 
     def current(self) -> Type[BaseEffect]:
         return self._effects[self._index]

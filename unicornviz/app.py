@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Type
 
 import moderngl
@@ -186,6 +187,25 @@ void main() {
         )
         self._init_sdl()
         self._init_moderngl()
+
+        # Splash screen — shown before any effect loads
+        splash_path = self.cfg.get("splash", "image", default="images/unicorn-viz-01.png")
+        splash_duration = float(self.cfg.get("splash", "duration", default=4.0))
+        if Path(splash_path).exists():
+            from unicornviz.splash import Splash
+            splash = Splash(
+                self._ctx, self._width, self._height,
+                image_path=splash_path,
+                duration=splash_duration,
+            )
+            if splash.run(self._window):
+                # User pressed Esc during splash — quit immediately
+                splash.destroy()
+                sdl2.SDL_GL_DeleteContext(self._gl_context)
+                sdl2.SDL_DestroyWindow(self._window)
+                sdl2.SDL_Quit()
+                return
+            splash.destroy()
 
         # Subsystems
         audio_manager = AudioManager(self.cfg)
@@ -379,6 +399,15 @@ void main() {
 
     def goto_effect(self, cls: Type[BaseEffect]) -> None:
         self._switch_effect(cls)
+
+    def goto_ansi(self, ansi_dir: str) -> None:
+        """Launch ANSIViewer with an explicit art directory."""
+        from unicornviz.effects.ansi_viewer import ANSIViewer
+        if self._next_effect is not None:
+            self._next_effect.destroy()
+        cfg_override = {"ansi_dir": ansi_dir}
+        self._next_effect = ANSIViewer(self._ctx, self._width, self._height, cfg_override)
+        self._transition_t = 0.0
 
     @property
     def paused(self) -> bool:

@@ -115,10 +115,45 @@ class HotkeyHandler:
                 )
 
         elif sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
-            idx = sym - sdl2.SDLK_1
+            idx = sym - sdl2.SDLK_1          # 0-based index 0–8
             cls = p.go_index(idx)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
+
+        elif sym == sdl2.SDLK_0:
+            cls = p.go_index(9)
+            a.goto_effect(cls)
+            o.flash_name(cls.NAME)
+
+        # Shift+1..0 → effects 10–19  (keysyms: !, @, #, $, %, ^, &, *, (, ))
+        elif sym in (sdl2.SDLK_EXCLAIM, sdl2.SDLK_AT, sdl2.SDLK_HASH,
+                     sdl2.SDLK_DOLLAR, sdl2.SDLK_PERCENT, sdl2.SDLK_CARET,
+                     sdl2.SDLK_AMPERSAND, sdl2.SDLK_ASTERISK,
+                     sdl2.SDLK_LEFTPAREN, sdl2.SDLK_RIGHTPAREN):
+            _shift_syms = [
+                sdl2.SDLK_EXCLAIM, sdl2.SDLK_AT, sdl2.SDLK_HASH,
+                sdl2.SDLK_DOLLAR, sdl2.SDLK_PERCENT, sdl2.SDLK_CARET,
+                sdl2.SDLK_AMPERSAND, sdl2.SDLK_ASTERISK,
+                sdl2.SDLK_LEFTPAREN, sdl2.SDLK_RIGHTPAREN,
+            ]
+            idx = 10 + _shift_syms.index(sym)   # effects 10–19
+            cls = p.go_index(idx)
+            a.goto_effect(cls)
+            o.flash_name(cls.NAME)
+
+        elif sym == sdl2.SDLK_COMMA:
+            # Launch ANSI Viewer with our hand-crafted art
+            ansi_dir = self._app.cfg.get("ansi", "ansi_own_dir",
+                                         default="assets/ansi")
+            a.goto_ansi(ansi_dir)
+            o.flash_message("ANSI: Own art", 2.0)
+
+        elif sym == sdl2.SDLK_PERIOD:
+            # Launch ANSI Viewer with ACiD art
+            acid_dir = self._app.cfg.get("ansi", "ansi_acid_dir",
+                                         default="assets/ansi/acid")
+            a.goto_ansi(acid_dir)
+            o.flash_message("ANSI: ACiD art", 2.0)
 
         elif sym == sdl2.SDLK_s:
             self._screenshot()

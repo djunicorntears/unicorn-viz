@@ -23,8 +23,8 @@ void main() {
 _FRAG = """
 #version 330
 uniform vec2  iResolution;
-uniform float iTime;
-uniform dvec2 iCenter;    // double-precision centre
+uniform float iCenterX;
+uniform float iCenterY;
 uniform float iZoom;
 uniform float iPalShift;
 uniform float iBass;
@@ -43,16 +43,16 @@ vec3 palette(float t) {
 
 void main() {
     vec2 uv = v_uv * vec2(iResolution.x / iResolution.y, 1.0);
-    dvec2 c = iCenter + dvec2(uv) / double(iZoom);
+    vec2 centre = vec2(iCenterX, iCenterY);
+    vec2 c = centre + uv / iZoom;
 
-    dvec2 z = dvec2(0.0);
+    vec2 z = vec2(0.0);
     float smooth_iter = 0.0;
     int i;
     for (i = 0; i < iMaxIter; i++) {
-        z = dvec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
-        if (dot(vec2(z), vec2(z)) > 256.0) {
-            // Smooth iteration count for band-free colouring
-            smooth_iter = float(i) - log2(log2(float(dot(vec2(z), vec2(z)))));
+        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+        if (dot(z, z) > 256.0) {
+            smooth_iter = float(i) - log2(log2(dot(z, z)));
             break;
         }
     }
@@ -118,8 +118,8 @@ class FractalZoom(BaseEffect):
 
     def render(self) -> None:
         self._prog["iResolution"].value = (float(self.width), float(self.height))
-        self._prog["iTime"].value = self.time
-        self._prog["iCenter"].value = (self._cx, self._cy)
+        self._prog["iCenterX"].value  = float(self._cx)
+        self._prog["iCenterY"].value  = float(self._cy)
         self._prog["iZoom"].value = float(self._zoom)
         self._prog["iPalShift"].value = self._pal_shift
         self._prog["iBass"].value = self._bass

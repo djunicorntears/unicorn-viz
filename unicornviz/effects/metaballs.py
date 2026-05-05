@@ -25,7 +25,8 @@ void main() {
 _FRAG = f"""
 #version 330
 #define N {_NUM_BALLS}
-uniform vec3  balls[N];   // xy = pos (-1.777..1.777, -1..1), z = radius
+// Flat float array: ball data packed as x0,y0,r0, x1,y1,r1, ...
+uniform float balls[N * 3];
 uniform float iTime;
 uniform float iBeat;
 in vec2 v_uv;
@@ -42,12 +43,13 @@ vec3 palette(float t) {{
 void main() {{
     float field = 0.0;
     for (int i = 0; i < N; i++) {{
-        vec2 d = v_uv - balls[i].xy;
-        float r = balls[i].z;
-        field += r * r / dot(d, d);
+        float bx = balls[i * 3];
+        float by = balls[i * 3 + 1];
+        float br = balls[i * 3 + 2];
+        vec2 d = v_uv - vec2(bx, by);
+        field += br * br / max(dot(d, d), 0.0001);
     }}
 
-    // threshold at ~1.0 for surface
     float surface = clamp(field - 1.0, 0.0, 1.0);
     float edge = abs(field - 1.2);
     float glow = 1.0 / (1.0 + edge * edge * 80.0);
@@ -56,7 +58,6 @@ void main() {{
     col = mix(vec3(0.0), col, surface);
     col += vec3(0.3, 0.6, 1.0) * glow * (0.4 + iBeat * 0.6);
 
-    // Scanlines
     col *= 0.9 + 0.1 * sin(gl_FragCoord.y * 3.14159 * 2.0);
 
     fragColor = vec4(col, 1.0);
@@ -97,11 +98,10 @@ class Metaballs(BaseEffect):
             r = self._radii[i] * (1.0 + self._bass * 0.5)
             balls.extend([x, y, r])
 
-        self._prog[f"iTime"].value = self.time
+        self._prog["iTime"].value = self.time
         self._prog["iBeat"].value = self._beat
-        # Write array of vec3
-        for i in range(_NUM_BALLS):
-            self._prog[f"balls[{i}]"].value = tuple(balls[i*3:i*3+3])
+        # Set entire float array in one call (moderngl exposes 'balls' not 'balls[0]')
+        self._prog["balls"].value = tuple(balls)
 
         self._vao.render(moderngl.TRIANGLE_STRIP)
 

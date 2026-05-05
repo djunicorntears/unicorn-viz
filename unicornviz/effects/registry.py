@@ -1,4 +1,20 @@
-"""Effect registry — auto-discovers all effect modules in this package."""
+"""
+Effect auto-discovery registry.
+
+``get_effects()`` imports every ``*.py`` module in the ``effects/`` package
+(except ``base.py`` and ``registry.py`` themselves), collects all concrete
+subclasses of ``BaseEffect``, and returns them sorted by ``NAME``.
+
+Adding a new effect
+-------------------
+Simply create a new file in ``unicornviz/effects/`` that subclasses
+``BaseEffect``.  It will be discovered automatically on the next run.
+
+Caching
+-------
+Results are cached after the first call so repeated calls (e.g., from tests)
+do not re-import modules.
+"""
 from __future__ import annotations
 
 import importlib

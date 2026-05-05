@@ -7,6 +7,7 @@ Particle Storm — GPU-simulated particle system using transform feedback.
 """
 from __future__ import annotations
 
+import random
 import numpy as np
 import moderngl
 
@@ -162,9 +163,11 @@ class ParticleStorm(BaseEffect):
             )
 
         def make_render_vao(src: moderngl.Buffer) -> moderngl.VertexArray:
+            # Buffer layout: pos(2f) vel(2f) life(1f) seed(1f)
+            # Skip vel(2f) and seed(1f) with padding ('x' = skip bytes)
             return self.ctx.vertex_array(
                 self._render_prog,
-                [(src, "2f 2f 1f 1f", "in_pos", "in_vel", "in_life", "in_seed")],
+                [(src, "2f 2x4 1f", "in_pos", "in_life")],
             )
 
         self._update_vao_a = make_update_vao(self._vbo_a)
@@ -181,8 +184,6 @@ class ParticleStorm(BaseEffect):
         self._treble = audio.treble
         if audio.beat > 0.5:
             self._beat = 1.0
-            # Random origin on beat
-            import random
             self._origin = (random.uniform(-0.6, 0.6), random.uniform(-0.5, 0.5))
         self._beat = max(0.0, self._beat - dt * 3.5)
 

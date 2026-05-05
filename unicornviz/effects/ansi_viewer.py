@@ -96,6 +96,10 @@ void main() {
     // Slight green phosphor tint for CRT feel
     col.g = mix(col.g, col.g * 1.05, iCRT * 0.3);
 
+    // Subtle CRT tube flicker — driven by iTime
+    float flicker = 0.97 + 0.03 * fract(sin(iTime * 7.3 + 1.5) * 4375.5);
+    col *= flicker;
+
     // Overall brightness flash on beat
     col *= 1.0 + iBeat * 0.15;
 
@@ -131,8 +135,7 @@ class ANSIViewer(BaseEffect):
             p = Path(d)
             self._files += sorted(p.glob("*.ans")) + sorted(p.glob("*.ANS"))
         if not self._files:
-            log.warning("No .ANS files found in %s", ansi_dir)
-            self._files = []
+            log.warning("No .ANS files found in %s", raw_dir)
 
         self._file_idx = 0
         self._ansi_tex: moderngl.Texture | None = None

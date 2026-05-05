@@ -1,4 +1,20 @@
-"""TOML config loader with sane defaults."""
+"""
+TOML configuration loader.
+
+Reads ``config.toml`` from the working directory (the project root) and
+deep-merges it with built-in defaults so every key always has a value.
+
+Usage::
+
+    cfg = Config()                    # loads config.toml
+    cfg = Config("my_config.toml")    # explicit path
+
+    width  = cfg.get("window", "width", default=1920)
+    device = cfg.get("audio", "device", default="")
+
+``get()`` accepts an arbitrary key path and never raises; it returns
+*default* when any intermediate key is missing.
+"""
 from __future__ import annotations
 
 import tomllib
@@ -29,10 +45,17 @@ _DEFAULTS: dict[str, Any] = {
     },
     "ansi": {
         "ansi_dir": "assets/ansi",
+        "ansi_own_dir": "assets/ansi",
+        "ansi_acid_dir": "assets/ansi/acid",
     },
     "effects": {},
+    "splash": {
+        "image": "images/unicorn-viz-01.png",
+        "duration": 4.0,
+    },
     "playlist": {
         "sequence": [],
+        "start_effect": "Audio Spectrum",
     },
 }
 

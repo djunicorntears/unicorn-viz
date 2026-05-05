@@ -1,4 +1,61 @@
-"""BaseEffect — abstract base class all effects inherit from."""
+"""
+Effect base classes and shared data types.
+
+Every visual effect is a subclass of ``BaseEffect``.  The registry
+(``effects/registry.py``) discovers all subclasses automatically at import
+time, so adding a new effect is as simple as creating a new ``.py`` file in
+the ``effects/`` directory.
+
+Implementing a new effect
+--------------------------
+1. Create ``unicornviz/effects/my_effect.py``.
+2. Subclass ``BaseEffect`` and set the ``NAME`` class attribute.
+3. Override ``_init()`` to allocate GL resources (shaders, VBOs, textures).
+4. Override ``render()`` to draw to the currently bound FBO.
+5. Optionally override ``update(dt, audio)`` for per-frame state updates.
+6. Optionally override ``destroy()`` to release GL resources on teardown.
+
+Example::
+
+    class MyEffect(BaseEffect):
+        NAME   = "My Effect"
+        AUTHOR = "your handle"
+        TAGS   = ["audio", "futuristic"]
+
+        def _init(self) -> None:
+            self._prog = self._make_program(VERT_SRC, FRAG_SRC)
+            self._vao, self._vbo = self._fullscreen_quad()
+
+        def update(self, dt: float, audio: AudioData) -> None:
+            super().update(dt, audio)          # ticks self.time
+            self._bass = audio.bass
+
+        def render(self) -> None:
+            self._prog["iTime"].value = self.time
+            self._prog["iBass"].value = self._bass
+            self._vao.render(moderngl.TRIANGLE_STRIP)
+
+        def destroy(self) -> None:
+            self._vao.release()
+            self._vbo.release()
+            self._prog.release()
+
+Helper methods provided by BaseEffect
+--------------------------------------
+``_fullscreen_quad()``        Returns ``(VAO, VBO)`` covering ``[-1, 1]²``.
+                               Requires ``self._prog`` to be set first.
+``_make_program(vert, frag)``  Compiles and links a GLSL program.
+
+AudioData slots
+---------------
+``fft``       np.float32[512]  Smoothed FFT magnitude spectrum (0–1 each band)
+``waveform``  np.float32[512]  Normalised PCM waveform snapshot
+``bass``      float            Averaged low-band energy  (0–1, may exceed 1)
+``mid``       float            Averaged mid-band energy
+``treble``    float            Averaged high-band energy
+``beat``      float            1.0 when a beat onset is detected, else 0.0
+``bpm``       float            Estimated BPM (not yet implemented: fixed 120)
+"""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

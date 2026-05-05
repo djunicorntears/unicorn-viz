@@ -3,14 +3,14 @@
 [window]
 width = 1920
 height = 1080
-fullscreen = false
+fullscreen = true
 title = "Unicorn Viz"
 
 [demo]
 # "sequential" or "random"
 mode = "sequential"
 # seconds per effect in auto-playlist mode
-effect_duration = 20
+effect_duration = 10
 # transition type: "cut", "crossfade", "scanwipe"
 transition = "crossfade"
 transition_duration = 1.0
@@ -27,15 +27,46 @@ buffer_seconds = 2.0
 device = ""
 
 [ansi]
-# Directories to scan for .ANS / .ANSi files (space-separated, or first match)
-ansi_dir = "assets/ansi/acid"
-# Set to "assets/ansi" to include the generated originals too
+# Default directory used by ANSI Viewer effect and the comma/period hotkeys
+ansi_dir      = "assets/ansi/acid"   # used when no hotkey override
+ansi_own_dir  = "assets/ansi"         # comma (,) hotkey → our hand-crafted art
+ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD art
 
 [effects]
-# Override per-effect defaults here, keyed by effect class name
+# Override per-effect parameter defaults here, keyed by Python class name.
+#
+# Available effects (use these names in [playlist] sequence or start_effect):
+#   "ANSI Viewer"    — scrolling CP437 art with CRT phosphor shader  (key: ,  ACiD: .)
+#   "Audio Spectrum" — FFT bars + oscilloscope (mode 0=bars 1=wave 2=both)
+#   "Copper Bars"    — Amiga-style oscillating colour bars
+#   "Fire"           — Cellular-automaton fire simulation
+#   "Fractal Zoom"   — Mandelbrot deep-zoom with beat-burst
+#   "Metaballs"      — GLSL SDF metaball field
+#   "Particle Storm" — 100k GPU particles, curl noise, transform-feedback
+#   "Plasma"         — Sin/cos colour-field plasma
+#   "Raymarcher"     — SDF scene: torus, spheres, morphing box
+#   "Sine Scroller"  — Multi-sine bouncing text scroller
+#   "Starfield"      — 3-D warp-speed star tunnel
+#   "Tunnel"         — Texture-mapped rotating tunnel
+#
+# Example overrides:
 # [effects.Plasma]
-# speed = 1.0
+# speed = 2.0
+#
+# [effects.ANSIViewer]
+# slide_time = 30.0
+# glow = 0.8
+
+[splash]
+# Path to splash screen image (PNG). Set to empty string to disable.
+image    = "images/unicorn-viz-01.png"
+# Total splash display time in seconds (includes 0.6s fade-in + 0.8s fade-out)
+duration = 4.0
 
 [playlist]
+# Start on this effect (use the display NAME from the list above).
+# Leave empty to start on the first effect in discovery order.
+start_effect = "Audio Spectrum"
+
 # If non-empty, only these effects cycle (in order). Empty = all effects.
 sequence = []
