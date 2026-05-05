@@ -1,0 +1,40 @@
+# Unicorn Viz — Configuration
+
+[window]
+width = 1920
+height = 1080
+fullscreen = false
+title = "Unicorn Viz"
+
+[demo]
+# "sequential" or "random"
+mode = "sequential"
+# seconds per effect in auto-playlist mode
+effect_duration = 20
+# transition type: "cut", "crossfade", "scanwipe"
+transition = "crossfade"
+transition_duration = 1.0
+
+[audio]
+# Set to name/substring of PipeWire monitor device, or leave empty for auto-detect
+device = ""
+fft_bands = 512
+# seconds of audio history to keep
+buffer_seconds = 2.0
+
+[midi]
+# Set to name/substring of MIDI device, or leave empty to disable
+device = ""
+
+[ansi]
+# Directory containing your .ANS / .ANSi files
+ansi_dir = "assets/ansi"
+
+[effects]
+# Override per-effect defaults here, keyed by effect class name
+# [effects.Plasma]
+# speed = 1.0
+
+[playlist]
+# If non-empty, only these effects cycle (in order). Empty = all effects.
+sequence = []
