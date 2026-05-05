@@ -123,9 +123,13 @@ class ANSIViewer(BaseEffect):
         self._font_atlas = build_font_atlas(self.ctx)
         self._parser = ANSIParser()
 
-        # Load all .ANS files from configured directory
-        ansi_dir = Path(self.config.get("ansi_dir", "assets/ansi"))
-        self._files = sorted(ansi_dir.glob("*.ans")) + sorted(ansi_dir.glob("*.ANS"))
+        # Load all .ANS files from configured directory/directories
+        raw_dir = self.config.get("ansi_dir", "assets/ansi")
+        dirs = [d.strip() for d in str(raw_dir).split(",")]
+        self._files: list[Path] = []
+        for d in dirs:
+            p = Path(d)
+            self._files += sorted(p.glob("*.ans")) + sorted(p.glob("*.ANS"))
         if not self._files:
             log.warning("No .ANS files found in %s", ansi_dir)
             self._files = []

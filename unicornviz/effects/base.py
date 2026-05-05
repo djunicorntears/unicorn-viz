@@ -85,6 +85,19 @@ class BaseEffect(ABC):
     def destroy(self) -> None:
         """Release any moderngl resources. Override if needed."""
 
+    def on_midi(self, event: "MidiEvent") -> None:  # noqa: F821
+        """
+        Handle a MIDI event.  Default: map CC numbers to self.parameters
+        using the cc_to_param lookup from MidiManager.
+        Effects may override to handle additional mappings.
+        """
+        if event.type == "cc":
+            # Try to find a matching parameter by name from the app-injected map
+            param_name = getattr(self, "_midi_cc_map", {}).get(event.number)
+            if param_name and param_name in self.parameters:
+                lo, hi = 0.0, 4.0
+                self.parameters[param_name] = lo + event.value * (hi - lo)
+
     # ------------------------------------------------------------------ #
     # Helpers                                                              #
     # ------------------------------------------------------------------ #

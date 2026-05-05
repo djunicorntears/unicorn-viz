@@ -1,4 +1,4 @@
-"""Hotkey handler — maps SDL keysyms to app/playlist/overlay actions."""
+"""Hotkey handler — maps SDL keysyms and MIDI notes to app/playlist/overlay actions."""
 from __future__ import annotations
 
 import logging
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from unicornviz.playlist import Playlist
     from unicornviz.overlays import Overlays
     from unicornviz.audio.manager import AudioManager
+    from unicornviz.midi import MidiManager, MidiEvent
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +28,35 @@ class HotkeyHandler:
         self._playlist = playlist
         self._overlays = overlays
         self._audio = audio_manager
+
+    def attach_midi(self, midi: "MidiManager") -> None:
+        """Register MIDI event listener after construction."""
+        midi.add_listener(self._on_midi)
+
+    def _on_midi(self, event: "MidiEvent") -> None:
+        a = self._app
+        p = self._playlist
+        o = self._overlays
+        if event.type == "note_on":
+            action = a._midi_manager.note_to_action(event.number)  # noqa: SLF001
+            if action == "next":
+                self.handle(sdl2.SDLK_n, 0)
+            elif action == "prev":
+                self.handle(sdl2.SDLK_p, 0)
+            elif action == "random":
+                self.handle(sdl2.SDLK_r, 0)
+            elif action == "pause":
+                self.handle(sdl2.SDLK_SPACE, 0)
+            elif action == "fullscreen":
+                self.handle(sdl2.SDLK_f, 0)
+        elif event.type == "cc":
+            effect = a._current_effect  # noqa: SLF001
+            if effect is not None:
+                param = a._midi_manager.cc_to_param(event.number)  # noqa: SLF001
+                if param and param in effect.parameters:
+                    lo, hi = 0.1, 4.0
+                    effect.parameters[param] = lo + event.value * (hi - lo)
+                    o.flash_message(f"MIDI {param}: {effect.parameters[param]:.2f}", 1.0)
 
     def handle(self, sym: int, mod: int) -> None:
         a = self._app

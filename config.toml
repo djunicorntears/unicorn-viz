@@ -27,8 +27,9 @@ buffer_seconds = 2.0
 device = ""
 
 [ansi]
-# Directory containing your .ANS / .ANSi files
-ansi_dir = "assets/ansi"
+# Directories to scan for .ANS / .ANSi files (space-separated, or first match)
+ansi_dir = "assets/ansi/acid"
+# Set to "assets/ansi" to include the generated originals too
 
 [effects]
 # Override per-effect defaults here, keyed by effect class name

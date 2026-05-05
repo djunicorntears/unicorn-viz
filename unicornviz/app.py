@@ -25,6 +25,7 @@ from unicornviz.audio.manager import AudioManager
 from unicornviz.playlist import Playlist
 from unicornviz.overlays import Overlays
 from unicornviz.hotkeys import HotkeyHandler
+from unicornviz.midi import MidiManager
 
 log = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ void main() {
         # Inject top-level [ansi] config into ANSIViewer so it finds the art dir
         if cls.__name__ == "ANSIViewer":
             ansi_dir = self.cfg.get("ansi", "ansi_dir", default="assets/ansi")
-            effect_cfg = {"ansi_dir": ansi_dir, **effect_cfg}
+            effect_cfg = {"ansi_dir": str(ansi_dir), **effect_cfg}
         return cls(self._ctx, self._width, self._height, effect_cfg)
 
     def _switch_effect(self, cls: Type[BaseEffect]) -> None:
@@ -190,6 +191,11 @@ void main() {
         audio_manager = AudioManager(self.cfg)
         audio_manager.start()
 
+        midi_device_hint = self.cfg.get("midi", "device", default="")
+        midi_manager = MidiManager(device_hint=midi_device_hint)
+        midi_manager.start()
+        self._midi_manager = midi_manager
+
         effects = get_effects()
         if not effects:
             raise RuntimeError("No effects found — check unicornviz/effects/")
@@ -202,6 +208,7 @@ void main() {
             overlays=overlays,
             audio_manager=audio_manager,
         )
+        hotkeys.attach_midi(midi_manager)
 
         # Load first effect
         self._current_effect = self._instantiate(playlist.current())
@@ -228,6 +235,10 @@ void main() {
                         self._on_resize(
                             event.window.data1, event.window.data2
                         )
+
+            # Dispatch pending MIDI events to active effect
+            if hasattr(self, "_midi_manager"):
+                pass   # MidiManager uses a callback thread; forward via action hooks
 
             # Auto-playlist advance
             if not self._paused and self._next_effect is None:
@@ -263,6 +274,7 @@ void main() {
 
         # Cleanup
         audio_manager.stop()
+        midi_manager.stop()
         if self._current_effect:
             self._current_effect.destroy()
         if self._next_effect:
