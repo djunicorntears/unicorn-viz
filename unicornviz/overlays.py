@@ -351,10 +351,9 @@ void main() {
             code = ord(ch) & 0x7F
             u0 = (code * 8) / atlas_w
             u1 = u0 + 8.0 / atlas_w
-            # Atlas is stored top-row-first in numpy → row 0 = bottom in GL.
-            # Swap v so glyph row 0 (top of char) maps to screen top.
-            v0 = 1.0
-            v1 = 0.0
+            # Vertical UV mapping for atlas sampling.
+            v0 = 0.0
+            v1 = 1.0
 
             # NDC conversion
             def px(px_val: float) -> float:
