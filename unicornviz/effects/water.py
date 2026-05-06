@@ -209,6 +209,7 @@ class Water(BaseEffect):
 
     def render(self) -> None:
         ctx = self.ctx
+        target_fbo = ctx.fbo
 
         # Indices: prev=step-2, curr=step-1, next=step (write target)
         i_prev = (self._step_idx - 2) % 3
@@ -236,6 +237,7 @@ class Water(BaseEffect):
         self._step_idx = (self._step_idx + 1) % 3
 
         # Display to currently bound target (app may be rendering into transition FBO)
+        target_fbo.use()
         ctx.viewport = (0, 0, self.width, self.height)
         ctx.clear(0.0, 0.0, 0.0, 1.0)
         _, disp_tex = self._fbos[(self._step_idx - 1) % 3]

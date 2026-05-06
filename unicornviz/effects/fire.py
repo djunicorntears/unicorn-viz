@@ -184,6 +184,7 @@ class Fire(BaseEffect):
     def render(self) -> None:
         ctx = self.ctx
         spd  = self.parameters["speed"]
+        target_fbo = ctx.fbo
 
         # --- Simulation step(s) ---
         # Multiple sub-steps per frame gives taller, fuller flames.
@@ -209,6 +210,7 @@ class Fire(BaseEffect):
 
         # --- Display ---
         # Render to whichever target app.py currently has bound (screen or transition FBO).
+        target_fbo.use()
         ctx.viewport = (0, 0, self.width, self.height)
         # The texture we just wrote into is the current heat field
         if self._ping:
