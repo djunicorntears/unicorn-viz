@@ -56,5 +56,5 @@ def canvas_to_texture(
             img[y0: y0 + _CHAR_H, x0: x0 + _CHAR_W] = block
 
     tex = ctx.texture((W, H), 4, data=img.tobytes())
-    tex.filter = moderngl.LINEAR, moderngl.LINEAR
+    tex.filter = moderngl.NEAREST, moderngl.NEAREST
     return tex

@@ -81,17 +81,23 @@ class AudioSpectrum(BaseEffect):
         self._bar_prog  = self._make_program(_VERT_BARS, _FRAG_BARS)
         self._wave_prog = self._make_program(_VERT_WAVE, _FRAG_WAVE)
 
-        # Pre-allocate VBOs; we'll write to them every frame
-        self._bar_vbo = self.ctx.buffer(
-            reserve=_N_BARS * 2 * 3 * 2 * (4 + 4 + 12)   # rough upper bound
-        )
-        self._wave_vbo = self.ctx.buffer(reserve=_N_WAVE * 2 * 4 * 2)
+        # Pre-allocate to worst-case size so we never orphan and invalidate the VAO
+        # Bars: _N_BARS bars × (6 verts/bar + 6 peak verts) × 6 floats × 4 bytes
+        bar_bytes = _N_BARS * 12 * 6 * 4
+        self._bar_vbo = self.ctx.buffer(reserve=bar_bytes)
+        # Wave: _N_WAVE vec2 points × 4 bytes
+        wave_bytes = _N_WAVE * 2 * 4
+        self._wave_vbo = self.ctx.buffer(reserve=wave_bytes)
 
-        self._bar_vao = self.ctx.simple_vertex_array(
-            self._bar_prog, self._bar_vbo, "in_pos", "in_mag", "in_col"
+        # Explicit format strings: 2f=pos, 1f=mag, 3f=col (24 bytes stride)
+        self._bar_vao = self.ctx.vertex_array(
+            self._bar_prog,
+            [(self._bar_vbo, "2f 1f 3f", "in_pos", "in_mag", "in_col")],
         )
-        self._wave_vao = self.ctx.simple_vertex_array(
-            self._wave_prog, self._wave_vbo, "in_pos"
+        # Wave: 2f=pos (8 bytes stride)
+        self._wave_vao = self.ctx.vertex_array(
+            self._wave_prog,
+            [(self._wave_vbo, "2f", "in_pos")],
         )
 
         self._fft  = np.zeros(_N_BARS, dtype=np.float32)
@@ -154,20 +160,18 @@ class AudioSpectrum(BaseEffect):
 
         if mode in (0, 2):
             bar_data, n_bar_verts = self._build_bars()
-            if bar_data.nbytes > self._bar_vbo.size:
-                self._bar_vbo.orphan(bar_data.nbytes)
-            self._bar_vbo.write(bar_data)
-            self._bar_vao.render(moderngl.TRIANGLES, vertices=n_bar_verts)
+            if bar_data.nbytes <= self._bar_vbo.size:
+                self._bar_vbo.write(bar_data)
+                self._bar_vao.render(moderngl.TRIANGLES, vertices=n_bar_verts)
 
         if mode in (1, 2):
             y_base  = 0.0 if mode == 1 else -0.5
             y_scale = 0.8 if mode == 1 else 0.4
             wave_data, n_wave = self._build_waveform(y_base, y_scale)
-            if wave_data.nbytes > self._wave_vbo.size:
-                self._wave_vbo.orphan(wave_data.nbytes)
-            self._wave_vbo.write(wave_data)
-            self._wave_prog["uColor"].value = (0.3, 1.0, 0.8)
-            self._wave_vao.render(moderngl.LINE_STRIP, vertices=n_wave)
+            if wave_data.nbytes <= self._wave_vbo.size:
+                self._wave_vbo.write(wave_data)
+                self._wave_prog["uColor"].value = (0.3, 1.0, 0.8)
+                self._wave_vao.render(moderngl.LINE_STRIP, vertices=n_wave)
 
     def destroy(self) -> None:
         self._bar_vao.release()

@@ -35,7 +35,8 @@ _VERT = """
 in  vec2 in_vert;
 out vec2 v_uv;
 void main() {
-    // in_vert is in [-1,1]; uv maps to [0,1] with Y flipped for GL
+    // Standard fullscreen quad: UV (0,0)=bottom-left, (1,1)=top-right
+    // Map screen top-left to UV (0,1) so image renders right-side-up
     v_uv = vec2(in_vert.x * 0.5 + 0.5, 0.5 - in_vert.y * 0.5);
     gl_Position = vec4(in_vert, 0.0, 1.0);
 }
@@ -100,7 +101,9 @@ class Splash:
             canvas.paste(resized, (x_off, y_off))
 
             # Flip vertically for OpenGL (origin is bottom-left in GL textures)
-            canvas = canvas.transpose(Image.FLIP_TOP_BOTTOM)
+            # The vert shader maps v_uv.y = 0.5 - in_vert.y * 0.5, which already
+            # accounts for the GL convention — do NOT flip the image here.
+            # canvas = canvas.transpose(Image.FLIP_TOP_BOTTOM)
 
             tex = self._ctx.texture((win_w, win_h), 4, data=canvas.tobytes())
             tex.filter = moderngl.LINEAR, moderngl.LINEAR

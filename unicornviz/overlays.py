@@ -321,8 +321,9 @@ void main() {
     def _build_vbo(self) -> None:
         # We'll generate geometry dynamically per frame; start with empty buffer.
         self._vbo = self._ctx.buffer(reserve=1024 * 4 * 4)
-        self._vao = self._ctx.simple_vertex_array(
-            self._prog, self._vbo, "in_vert", "in_uv"
+        self._vao = self._ctx.vertex_array(
+            self._prog,
+            [(self._vbo, "2f 2f", "in_vert", "in_uv")],
         )
 
     def _char_quads(
@@ -350,8 +351,10 @@ void main() {
             code = ord(ch) & 0x7F
             u0 = (code * 8) / atlas_w
             u1 = u0 + 8.0 / atlas_w
-            v0 = 0.0
-            v1 = 1.0
+            # Atlas is stored top-row-first in numpy → row 0 = bottom in GL.
+            # Swap v so glyph row 0 (top of char) maps to screen top.
+            v0 = 1.0
+            v1 = 0.0
 
             # NDC conversion
             def px(px_val: float) -> float:

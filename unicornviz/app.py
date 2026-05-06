@@ -109,6 +109,18 @@ class App:
             )
         sdl2.SDL_GL_SetSwapInterval(1)  # vsync
 
+        # After fullscreen is applied the OS may give us a different size.
+        # Query the actual drawable size and update width/height.
+        w_ptr = sdl2.SDL_GetWindowSize.__doc__ and None  # just for type inference
+        import ctypes
+        w_i = ctypes.c_int(0)
+        h_i = ctypes.c_int(0)
+        sdl2.SDL_GetWindowSize(self._window, w_i, h_i)
+        if self._fullscreen:
+            self._width  = w_i.value or self._width
+            self._height = h_i.value or self._height
+            log.info("Fullscreen drawable size: %dx%d", self._width, self._height)
+
     def _init_moderngl(self) -> None:
         self._ctx = moderngl.create_context()
         self._ctx.enable(moderngl.BLEND)
@@ -146,9 +158,10 @@ void main() {
         )
         verts = np.array([-1, -1, -1, 1, 1, -1, 1, 1], dtype=np.float32)
         vbo = self._ctx.buffer(verts)
-        self._blend_vao = self._ctx.simple_vertex_array(
-            self._blend_prog, vbo, "in_vert"
+        self._blend_vao = self._ctx.vertex_array(
+            self._blend_prog, [(vbo, "2f", "in_vert")]
         )
+        self._blend_vbo = vbo  # keep ref so it's not GC'd
 
     def _make_fbo(self) -> moderngl.Framebuffer:
         tex = self._ctx.texture((self._width, self._height), 4)
