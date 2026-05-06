@@ -156,7 +156,7 @@ class Fire(BaseEffect):
 
         # Two ping-pong FBOs at sim resolution
         def _make_sim_fbo() -> tuple[moderngl.Framebuffer, moderngl.Texture]:
-            tex = self.ctx.texture((_SIM_W, _SIM_H), 1, dtype="f4")
+            tex = self.ctx.texture((_SIM_W, _SIM_H), 4, dtype="f2")
             tex.filter = moderngl.LINEAR, moderngl.LINEAR
             tex.repeat_x = False
             tex.repeat_y = False
@@ -210,7 +210,10 @@ class Fire(BaseEffect):
 
         # --- Display ---
         # Render to whichever target app.py currently has bound (screen or transition FBO).
-        target_fbo.use()
+        if target_fbo is not None and hasattr(target_fbo, "use"):
+            target_fbo.use()
+        elif ctx.screen is not None:
+            ctx.screen.use()
         ctx.viewport = (0, 0, self.width, self.height)
         # The texture we just wrote into is the current heat field
         if self._ping:

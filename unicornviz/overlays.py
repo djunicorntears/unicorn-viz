@@ -239,9 +239,6 @@ def _build_font_texture(ctx: moderngl.Context) -> moderngl.Texture:
             codepoint = 32 + idx
             for row in range(8):
                 byte = font_bytes[idx * 8 + row]
-                # Embedded table rows are bit-packed with LSB at visual left.
-                # Reverse bits so MSB maps to leftmost pixel in the atlas.
-                byte = int(f'{byte:08b}'[::-1], 2)
                 for col in range(8):
                     if byte & (0x80 >> col):
                         data[row, codepoint * 8 + col] = 255
