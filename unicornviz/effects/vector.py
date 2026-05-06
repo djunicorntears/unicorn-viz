@@ -86,9 +86,9 @@ def _icosa_edges() -> np.ndarray:
 
 # Shapes list: each entry is (edge_array, colour_rgb, base_scale)
 _SHAPES = [
-    (_cube_edges,    (0.2, 0.8, 1.0), 0.55),   # cyan cube
-    (_octa_edges,    (1.0, 0.3, 0.8), 0.65),   # magenta octahedron
-    (_icosa_edges,   (0.3, 1.0, 0.4), 0.50),   # green icosahedron
+    (_cube_edges,    (0.2, 0.8, 1.0), 0.85),   # cyan cube
+    (_octa_edges,    (1.0, 0.3, 0.8), 1.0),    # magenta octahedron
+    (_icosa_edges,   (0.3, 1.0, 0.4), 0.80),   # green icosahedron
 ]
 
 # ---------------------------------------------------------------------------
@@ -203,10 +203,15 @@ class Vector(BaseEffect):
         self._proj = _perspective(math.radians(50), aspect, 0.1, 100.0)
 
         self.ctx.clear(0.0, 0.0, 0.0, 1.0)
-        self.ctx.line_width = max(1.0, 2.0 + self._beat * 2.0)
+        # line_width > 1 requires GL_LINE_SMOOTH which many Mesa drivers ignore;
+        # set it but don't rely on it for visibility
+        try:
+            self.ctx.line_width = max(1.0, 2.0 + self._beat * 2.0)
+        except Exception:
+            pass
 
-        # Draw all three shapes simultaneously, offset on Z so they don't overlap
-        z_positions = [-2.5, -4.0, -6.0]
+        # Draw all three shapes simultaneously, spread across the screen
+        z_positions = [-2.0, -3.2, -5.0]
         angles = [
             (self._rx,   self._ry,   self._rz),
             (self._rx2,  self._ry,   self._ry2),

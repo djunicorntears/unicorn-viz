@@ -159,16 +159,20 @@ class BaseEffect(ABC):
     # Helpers                                                              #
     # ------------------------------------------------------------------ #
 
-    def _fullscreen_quad(self) -> tuple["moderngl.VertexArray", "moderngl.Buffer"]:
-        """Return a VAO covering [-1,1]² for fullscreen quad rendering."""
+    def _fullscreen_quad(
+        self, prog: "moderngl.Program | None" = None
+    ) -> tuple["moderngl.VertexArray", "moderngl.Buffer"]:
+        """Return a VAO covering [-1,1]² for fullscreen quad rendering.
+
+        If *prog* is None, falls back to ``self._prog`` (single-program effects).
+        """
+        p = prog if prog is not None else self._prog  # type: ignore[attr-defined]
         vertices = np.array(
             [-1, -1, -1, 1, 1, -1, 1, 1],
             dtype=np.float32,
         )
         vbo = self.ctx.buffer(vertices)
-        vao = self.ctx.simple_vertex_array(
-            self._prog, vbo, "in_vert"  # type: ignore[attr-defined]
-        )
+        vao = self.ctx.vertex_array(p, [(vbo, "2f", "in_vert")])
         return vao, vbo
 
     def _make_program(self, vert_src: str, frag_src: str) -> "moderngl.Program":

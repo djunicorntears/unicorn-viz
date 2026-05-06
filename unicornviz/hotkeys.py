@@ -114,6 +114,14 @@ class HotkeyHandler:
                     effect.parameters["speed"] * 0.8, 0.05
                 )
 
+        elif sym == sdl2.SDLK_g:
+            am = self._audio
+            if mod & sdl2.KMOD_SHIFT:
+                am._gain = max(0.1, round(am._gain - 0.1, 2))
+            else:
+                am._gain = min(5.0, round(am._gain + 0.1, 2))
+            o.flash_message(f"Audio gain: {am._gain:.1f}x", 1.5)
+
         elif sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
             idx = sym - sdl2.SDLK_1          # 0-based index 0–8
             cls = p.go_index(idx)

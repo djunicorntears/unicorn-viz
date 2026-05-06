@@ -133,6 +133,9 @@ class ANSIViewer(BaseEffect):
             self._files += sorted(p.glob("*.ans")) + sorted(p.glob("*.ANS"))
         if not self._files:
             log.warning("No .ANS files found in %s", raw_dir)
+        else:
+            import random as _random
+            _random.shuffle(self._files)
 
         self._file_idx = 0
         self._ansi_tex: moderngl.Texture | None = None

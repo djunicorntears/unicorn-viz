@@ -18,11 +18,12 @@ transition_duration = 1.0
 [audio]
 # Leave empty for auto-detect (prefers OBS monitor when OBS is running,
 # falls back to any PipeWire monitor sink, then system default input).
-# Set explicitly if auto-detect picks the wrong device.
 device = ""
 fft_bands = 512
-# seconds of audio history to keep
 buffer_seconds = 2.0
+# Master audio reactivity gain (1.0 = default, 2.0 = twice as reactive).
+# Raise this for quieter source material or a more energetic visual feel.
+gain = 1.5
 
 [midi]
 # Set to name/substring of MIDI device, or leave empty to disable

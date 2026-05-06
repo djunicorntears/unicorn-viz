@@ -189,13 +189,13 @@ class Cube3D(BaseEffect):
 
         # Translate into view
         t = np.eye(4, dtype=np.float32)
-        t[2, 3] = -3.5
+        t[2, 3] = -4.5  # push back a bit further so it fills 4K nicely
 
         model_t = t @ s @ model
         mvp = proj @ model_t
 
         self.ctx.enable(moderngl.DEPTH_TEST)
-        self.ctx.clear(0.0, 0.0, 0.0, 1.0)
+        self.ctx.clear(0.0, 0.0, 0.0, 1.0, depth=1.0)
 
         self._prog["uMVP"].write(mvp.T.tobytes())
         self._prog["uModel"].write(model_t.T.tobytes())

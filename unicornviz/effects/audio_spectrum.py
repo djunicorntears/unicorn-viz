@@ -57,6 +57,87 @@ void main() {
 }
 """
 
+_VERT_FULL = """
+#version 330
+in  vec2 in_vert;
+out vec2 v_uv;
+void main() {
+    v_uv = in_vert * 0.5 + 0.5;
+    gl_Position = vec4(in_vert, 0.0, 1.0);
+}
+"""
+
+_FRAG_RAIN = """
+#version 330
+uniform float iTime;
+uniform float iBass;
+uniform float iTreble;
+uniform vec2  iResolution;
+
+in  vec2 v_uv;
+out vec4 fragColor;
+
+float hash(float n) { return fract(sin(n) * 43758.5453123); }
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+// Returns 1 if pixel (col, row) in a character cell is lit
+float glyph(vec2 cell, float ch, vec2 frac) {
+    // Encode a 4x6 bitmap for 8 pseudo-chars (binary + ACGT)
+    // Packed as 24-bit integer patterns; we use hash to vary per cell
+    float bit = floor(ch * 8.0);
+    // Simple: odd columns lit creates a glyph-like silhouette
+    float cx = frac.x;
+    float cy = frac.y;
+    float v = hash(floor(cx * 4.0) + floor(cy * 6.0) * 4.0 + ch * 97.3 + cell.x * 13.7);
+    return step(0.45, v);
+}
+
+void main() {
+    // Character grid: ~80 cols on a 1920-wide screen
+    float charW = iResolution.x / 80.0;
+    float charH = charW * 1.5;
+
+    vec2 cell = floor(v_uv * iResolution / vec2(charW, charH));
+    vec2 frac = fract(v_uv * iResolution / vec2(charW, charH));
+
+    float col = cell.x;
+    float row = cell.y;
+    float nRows = iResolution.y / charH;
+
+    // Each column has an offset and speed
+    float speed  = 4.0 + hash(col * 7.3) * 10.0 + iBass * 6.0;
+    float offset = hash(col * 13.1) * nRows;
+    float head   = mod(iTime * speed + offset, nRows * 1.4);
+
+    // Distance below the head
+    float dist = head - row;
+
+    if (dist < 0.0 || dist > 18.0) {
+        fragColor = vec4(0.0);
+        return;
+    }
+
+    // Choose cyan or purple column
+    float colType = step(0.5, hash(col * 31.7));
+
+    // Brightness falls off below head
+    float bright = exp(-dist * 0.25) * (0.8 + iTreble * 0.4);
+    // Head pixel extra bright
+    if (dist < 1.0) bright = 1.0 + iTreble * 0.6;
+
+    // Changing character: flicker faster near head
+    float t = iTime * (2.0 + (1.0 - dist / 18.0) * 6.0);
+    float ch = hash2(vec2(col, floor(t)));
+    float lit = glyph(cell, ch, frac);
+
+    vec3 cyan    = vec3(0.0, 1.0, 0.95);
+    vec3 purple  = vec3(0.75, 0.0, 1.0);
+    vec3 tint    = mix(cyan, purple, colType);
+
+    fragColor = vec4(tint * bright * lit, bright * lit * 0.85);
+}
+"""
+
 _N_BARS = 64
 _N_WAVE = 512
 
@@ -77,6 +158,9 @@ class AudioSpectrum(BaseEffect):
 
     def _init(self) -> None:
         self.parameters = {"mode": 2, "glow": 1.0}
+
+        self._rain_prog = self._make_program(_VERT_FULL, _FRAG_RAIN)
+        self._rain_vao, self._rain_vbo = self._fullscreen_quad(self._rain_prog)
 
         self._bar_prog  = self._make_program(_VERT_BARS, _FRAG_BARS)
         self._wave_prog = self._make_program(_VERT_WAVE, _FRAG_WAVE)
@@ -105,9 +189,13 @@ class AudioSpectrum(BaseEffect):
         self._smooth = np.zeros(_N_BARS, dtype=np.float32)
         self._peak   = np.zeros(_N_BARS, dtype=np.float32)
         self._peak_hold = np.zeros(_N_BARS, dtype=np.float32)
+        self._bass   = 0.0
+        self._treble = 0.0
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
+        self._bass   = audio.bass
+        self._treble = audio.treble
 
         if audio.fft is not None and len(audio.fft) >= _N_BARS:
             raw = audio.fft[:_N_BARS].copy()
@@ -158,6 +246,14 @@ class AudioSpectrum(BaseEffect):
         mode = int(self.parameters["mode"]) % 3
         self.ctx.clear(0.0, 0.0, 0.0, 1.0)
 
+        # Matrix rain background (additive blend ON)
+        self.ctx.enable(moderngl.BLEND)
+        self._rain_prog["iTime"].value       = self.time
+        self._rain_prog["iBass"].value       = self._bass
+        self._rain_prog["iTreble"].value     = self._treble
+        self._rain_prog["iResolution"].value = (float(self.width), float(self.height))
+        self._rain_vao.render(moderngl.TRIANGLE_STRIP)
+
         if mode in (0, 2):
             bar_data, n_bar_verts = self._build_bars()
             if bar_data.nbytes <= self._bar_vbo.size:
@@ -174,6 +270,9 @@ class AudioSpectrum(BaseEffect):
                 self._wave_vao.render(moderngl.LINE_STRIP, vertices=n_wave)
 
     def destroy(self) -> None:
+        self._rain_vao.release()
+        self._rain_vbo.release()
+        self._rain_prog.release()
         self._bar_vao.release()
         self._wave_vao.release()
         self._bar_vbo.release()

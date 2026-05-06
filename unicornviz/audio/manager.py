@@ -19,6 +19,7 @@ class AudioManager:
         device_hint = cfg.get("audio", "device", default="")
         fft_bands = cfg.get("audio", "fft_bands", default=512)
         buffer_seconds = cfg.get("audio", "buffer_seconds", default=2.0)
+        self._gain = float(cfg.get("audio", "gain", default=1.0))
         self._capture = AudioCapture(
             device_hint=device_hint,
             buffer_seconds=buffer_seconds,
@@ -35,5 +36,13 @@ class AudioManager:
     def get_audio_data(self) -> AudioData:
         """Called every frame from the main loop."""
         block = self._capture.get_block()
-        self._last_data = self._analyzer.process(block)
+        data = self._analyzer.process(block)
+        if self._gain != 1.0:
+            data.bass   = min(1.0, data.bass   * self._gain)
+            data.mid    = min(1.0, data.mid    * self._gain)
+            data.treble = min(1.0, data.treble * self._gain)
+            if data.fft is not None:
+                import numpy as _np
+                data.fft = _np.clip(data.fft * self._gain, 0.0, 1.0)
+        self._last_data = data
         return self._last_data
