@@ -10,14 +10,16 @@ title = "Unicorn Viz"
 # "sequential" or "random"
 mode = "sequential"
 # seconds per effect in auto-playlist mode
-effect_duration = 10
+effect_duration = 60
 # transition type: "cut", "crossfade", "scanwipe"
-transition = "crossfade"
+transition = "scanwipe"
 transition_duration = 1.0
 
 [audio]
-# Set to name/substring of PipeWire monitor device, or leave empty for auto-detect
-device = "Monitor"
+# Leave empty for auto-detect (prefers OBS monitor when OBS is running,
+# falls back to any PipeWire monitor sink, then system default input).
+# Set explicitly if auto-detect picks the wrong device.
+device = ""
 fft_bands = 512
 # seconds of audio history to keep
 buffer_seconds = 2.0

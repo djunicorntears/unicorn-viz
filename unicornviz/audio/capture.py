@@ -25,25 +25,50 @@ _CHANNELS = 2
 
 
 def _find_monitor_device(hint: str) -> int | None:
-    """Return device index of a monitor/loopback source matching hint."""
+    """
+    Return device index matching hint, or auto-select best monitor source.
+
+    Auto-select priority (when hint is empty):
+      1. OBS virtual monitor (OBS is running and routing desktop audio)
+      2. Any PipeWire/PulseAudio monitor sink
+      3. None (sounddevice will use the system default input)
+    """
     if not _SD_AVAILABLE:
         return None
     try:
         devices = sd.query_devices()
     except Exception:
         return None
+
     hint_lower = hint.lower()
+
+    # Explicit hint: find first input device whose name contains the hint
+    if hint_lower:
+        for i, d in enumerate(devices):
+            if d.get("max_input_channels", 0) < 1:
+                continue
+            if hint_lower in d["name"].lower():
+                return i
+        log.warning("Audio: no device matching %r found, falling back to auto", hint)
+
+    # Auto-detect: prefer OBS monitor (captures desktop audio through OBS)
     for i, d in enumerate(devices):
-        name = d["name"].lower()
-        max_in = d.get("max_input_channels", 0)
-        if max_in < 1:
+        if d.get("max_input_channels", 0) < 1:
             continue
-        # PipeWire monitor sinks have "monitor" in their name
-        if hint_lower and hint_lower in name:
+        name = d["name"].lower()
+        if "obs" in name and "monitor" in name:
+            log.info("Audio: auto-selected OBS monitor device %d (%s)", i, d["name"])
             return i
-        if not hint_lower and "monitor" in name:
+
+    # Fall back to any PipeWire/PulseAudio monitor sink
+    for i, d in enumerate(devices):
+        if d.get("max_input_channels", 0) < 1:
+            continue
+        name = d["name"].lower()
+        if "monitor" in name:
+            log.info("Audio: auto-selected monitor device %d (%s)", i, d["name"])
             return i
-    # Fallback: default input
+
     return None
 
 
@@ -57,6 +82,7 @@ class AudioCapture:
         self._device_hint = device_hint
         self._buffer_seconds = buffer_seconds
         self._sample_rate = _SAMPLE_RATE   # updated in start() once device is known
+        self._channels = _CHANNELS
         self._buf: deque[np.ndarray] = deque(
             maxlen=int(_SAMPLE_RATE * buffer_seconds / _BLOCK_SIZE) + 1
         )
@@ -83,20 +109,28 @@ class AudioCapture:
             # Use the device's native default sample rate when available.
             # PipeWire monitor sinks usually run at 48000 Hz; some at 44100.
             native_rate: int = _SAMPLE_RATE
+            native_channels: int = _CHANNELS
             if device is not None:
                 try:
                     info = sd.query_devices(device)
                     native_rate = int(info.get("default_samplerate", _SAMPLE_RATE))
+                    native_channels = min(
+                        _CHANNELS, int(info.get("max_input_channels", _CHANNELS))
+                    )
                 except Exception:
                     pass
             elif device is None:
                 try:
                     info = sd.query_devices(kind="input")
                     native_rate = int(info.get("default_samplerate", _SAMPLE_RATE))
+                    native_channels = min(
+                        _CHANNELS, int(info.get("max_input_channels", _CHANNELS))
+                    )
                 except Exception:
                     pass
 
             self._sample_rate = native_rate
+            self._channels = native_channels
             # Resize ring buffer to match actual sample rate
             new_maxlen = int(native_rate * self._buffer_seconds / _BLOCK_SIZE) + 1
             with self._lock:
@@ -104,7 +138,7 @@ class AudioCapture:
             self._stream = sd.InputStream(
                 device=device,
                 samplerate=native_rate,
-                channels=_CHANNELS,
+                channels=native_channels,
                 blocksize=_BLOCK_SIZE,
                 dtype=np.float32,
                 callback=self._callback,
@@ -112,7 +146,10 @@ class AudioCapture:
             )
             self._stream.start()
             self._active = True
-            log.info("Audio capture started at %d Hz", native_rate)
+            log.info(
+                "Audio capture started at %d Hz, %d ch",
+                native_rate, native_channels,
+            )
         except Exception as exc:
             log.warning("Could not open audio stream: %s", exc)
 
@@ -125,7 +162,7 @@ class AudioCapture:
     ) -> None:
         if status:
             log.debug("Audio status: %s", status)
-        mono = indata.mean(axis=1)              # stereo → mono
+        mono = indata.mean(axis=1) if indata.ndim > 1 and indata.shape[1] > 1 else indata[:, 0]
         with self._lock:
             self._buf.append(mono.copy())
 
