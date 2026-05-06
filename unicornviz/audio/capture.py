@@ -19,7 +19,7 @@ except Exception as e:
     log.warning("sounddevice unavailable: %s — audio disabled", e)
     _SD_AVAILABLE = False
 
-_SAMPLE_RATE = 44100
+_SAMPLE_RATE = 48000   # PipeWire default; 44100 fallback attempted at runtime
 _BLOCK_SIZE = 1024
 _CHANNELS = 2
 
@@ -55,6 +55,8 @@ class AudioCapture:
 
     def __init__(self, device_hint: str = "", buffer_seconds: float = 2.0) -> None:
         self._device_hint = device_hint
+        self._buffer_seconds = buffer_seconds
+        self._sample_rate = _SAMPLE_RATE   # updated in start() once device is known
         self._buf: deque[np.ndarray] = deque(
             maxlen=int(_SAMPLE_RATE * buffer_seconds / _BLOCK_SIZE) + 1
         )
@@ -78,9 +80,30 @@ class AudioCapture:
             log.info("Audio capture: using default input device")
 
         try:
+            # Use the device's native default sample rate when available.
+            # PipeWire monitor sinks usually run at 48000 Hz; some at 44100.
+            native_rate: int = _SAMPLE_RATE
+            if device is not None:
+                try:
+                    info = sd.query_devices(device)
+                    native_rate = int(info.get("default_samplerate", _SAMPLE_RATE))
+                except Exception:
+                    pass
+            elif device is None:
+                try:
+                    info = sd.query_devices(kind="input")
+                    native_rate = int(info.get("default_samplerate", _SAMPLE_RATE))
+                except Exception:
+                    pass
+
+            self._sample_rate = native_rate
+            # Resize ring buffer to match actual sample rate
+            new_maxlen = int(native_rate * self._buffer_seconds / _BLOCK_SIZE) + 1
+            with self._lock:
+                self._buf = deque(maxlen=new_maxlen)
             self._stream = sd.InputStream(
                 device=device,
-                samplerate=_SAMPLE_RATE,
+                samplerate=native_rate,
                 channels=_CHANNELS,
                 blocksize=_BLOCK_SIZE,
                 dtype=np.float32,
@@ -89,6 +112,7 @@ class AudioCapture:
             )
             self._stream.start()
             self._active = True
+            log.info("Audio capture started at %d Hz", native_rate)
         except Exception as exc:
             log.warning("Could not open audio stream: %s", exc)
 
@@ -132,7 +156,7 @@ class AudioCapture:
 
     @property
     def sample_rate(self) -> int:
-        return _SAMPLE_RATE
+        return self._sample_rate
 
     @property
     def block_size(self) -> int:
