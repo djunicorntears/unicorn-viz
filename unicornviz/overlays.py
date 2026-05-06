@@ -239,6 +239,9 @@ def _build_font_texture(ctx: moderngl.Context) -> moderngl.Texture:
             codepoint = 32 + idx
             for row in range(8):
                 byte = font_bytes[idx * 8 + row]
+                # Embedded rows are packed with opposite horizontal bit order.
+                # Reverse bits so glyphs are not mirrored.
+                byte = int(f'{byte:08b}'[::-1], 2)
                 for col in range(8):
                     if byte & (0x80 >> col):
                         data[row, codepoint * 8 + col] = 255
