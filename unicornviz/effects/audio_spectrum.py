@@ -3,7 +3,7 @@ Audio Spectrum — frequency bars + oscilloscope waveform.
 Two sub-modes cycled with a parameter:
   mode=0  spectrum bars (FFT)
   mode=1  oscilloscope (waveform)
-  mode=2  both stacked
+    mode=2  bars + matrix/binary DNA rain background
 """
 from __future__ import annotations
 
@@ -279,7 +279,8 @@ class AudioSpectrum(BaseEffect):
                 self._bar_vbo.write(bar_data)
                 self._bar_vao.render(moderngl.TRIANGLES, vertices=n_bar_verts)
 
-        if mode in (1, 2):
+        # Keep squiggle waveform only in dedicated oscilloscope mode.
+        if mode == 1:
             y_base  = 0.0 if mode == 1 else -0.5
             y_scale = 0.8 if mode == 1 else 0.4
             wave_data, n_wave = self._build_waveform(y_base, y_scale)

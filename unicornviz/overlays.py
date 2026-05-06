@@ -349,9 +349,8 @@ void main() {
         cx = x
         for ch in text:
             code = ord(ch) & 0x7F
-            # Swap U so glyphs are not mirrored on Mesa/X11 paths.
-            u1 = (code * 8) / atlas_w
-            u0 = u1 + 8.0 / atlas_w
+            u0 = (code * 8) / atlas_w
+            u1 = u0 + 8.0 / atlas_w
             # Atlas is stored top-row-first in numpy → row 0 = bottom in GL.
             # Swap v so glyph row 0 (top of char) maps to screen top.
             v0 = 1.0

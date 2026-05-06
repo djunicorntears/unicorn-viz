@@ -148,7 +148,11 @@ class Fire(BaseEffect):
         self._sim_prog  = self._make_program(_VERT, _SIM_FRAG)
         self._disp_prog = self._make_program(_VERT, _DISPLAY_FRAG)
 
-        self._vao, self._vbo = self._fullscreen_quad(self._sim_prog)
+        self._sim_vao, self._vbo = self._fullscreen_quad(self._sim_prog)
+        self._disp_vao = self.ctx.vertex_array(
+            self._disp_prog,
+            [(self._vbo, "2f", "in_vert")],
+        )
 
         # Two ping-pong FBOs at sim resolution
         def _make_sim_fbo() -> tuple[moderngl.Framebuffer, moderngl.Texture]:
@@ -201,7 +205,7 @@ class Fire(BaseEffect):
             self._sim_prog["iTreble"].value    = self._treble
             self._sim_prog["iTime"].value      = self.time
             self._sim_prog["iIntensity"].value = float(self.parameters["intensity"])
-            self._vao.render(moderngl.TRIANGLE_STRIP)
+            self._sim_vao.render(moderngl.TRIANGLE_STRIP)
 
         # --- Display ---
         # Render to whichever target app.py currently has bound (screen or transition FBO).
@@ -215,10 +219,11 @@ class Fire(BaseEffect):
         self._disp_prog["iBass"].value    = self._bass
         self._disp_prog["iBeat"].value    = self._beat
         self._disp_prog["iTime"].value    = self.time
-        self._vao.render(moderngl.TRIANGLE_STRIP)
+        self._disp_vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:
-        self._vao.release()
+        self._sim_vao.release()
+        self._disp_vao.release()
         self._vbo.release()
         self._sim_prog.release()
         self._disp_prog.release()

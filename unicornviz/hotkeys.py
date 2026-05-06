@@ -67,12 +67,13 @@ class HotkeyHandler:
             a._running = False  # noqa: SLF001
 
         elif sym in (sdl2.SDLK_n, sdl2.SDLK_RIGHT):
-            cls = p.advance()
+            # Always step sequentially for explicit next/prev hotkeys.
+            cls = p.go_index(p.index + 1)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
         elif sym in (sdl2.SDLK_p, sdl2.SDLK_LEFT):
-            cls = p.go_prev()
+            cls = p.go_index(p.index - 1)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
@@ -123,13 +124,19 @@ class HotkeyHandler:
             o.flash_message(f"Audio reactivity: {am._reactivity:.1f}x", 1.5)
 
         elif sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
-            idx = sym - sdl2.SDLK_1          # 0-based index 0–8
+            # Shift+1..9 may still come through as SDLK_1..9 + KMOD_SHIFT.
+            if mod & sdl2.KMOD_SHIFT:
+                idx = 9 + (sym - sdl2.SDLK_1)   # 10..18
+            else:
+                idx = sym - sdl2.SDLK_1          # 0..8
             cls = p.go_index(idx)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
         elif sym == sdl2.SDLK_0:
-            cls = p.go_index(9)
+            # 0 = index 9, Shift+0 (')') = index 19
+            idx = 19 if (mod & sdl2.KMOD_SHIFT) else 9
+            cls = p.go_index(idx)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 

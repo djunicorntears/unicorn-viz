@@ -162,7 +162,11 @@ class Water(BaseEffect):
 
         self._sim_prog  = self._make_program(_VERT, _SIM_FRAG)
         self._disp_prog = self._make_program(_VERT, _DISPLAY_FRAG)
-        self._vao, self._vbo = self._fullscreen_quad(self._sim_prog)
+        self._sim_vao, self._vbo = self._fullscreen_quad(self._sim_prog)
+        self._disp_vao = self.ctx.vertex_array(
+            self._disp_prog,
+            [(self._vbo, "2f", "in_vert")],
+        )
 
         def _make_fbo() -> tuple[moderngl.Framebuffer, moderngl.Texture]:
             tex = self.ctx.texture((_SIM_W, _SIM_H), 1, dtype="f4")
@@ -227,7 +231,7 @@ class Water(BaseEffect):
         self._sim_prog["iTime"].value      = self.time
         self._sim_prog["iDrop"].value      = self._drop
         self._sim_prog["iDropAmt"].value   = self._drop_amt
-        self._vao.render(moderngl.TRIANGLE_STRIP)
+        self._sim_vao.render(moderngl.TRIANGLE_STRIP)
 
         self._step_idx = (self._step_idx + 1) % 3
 
@@ -241,14 +245,15 @@ class Water(BaseEffect):
         self._disp_prog["iBeat"].value   = self._beat
         self._disp_prog["iTreble"].value = self._treble
         self._disp_prog["iTime"].value   = self.time
-        self._vao.render(moderngl.TRIANGLE_STRIP)
+        self._disp_vao.render(moderngl.TRIANGLE_STRIP)
 
         # Reset drop so it only injects for one frame
         self._drop = (-1.0, -1.0)
         self._drop_amt = 0.0
 
     def destroy(self) -> None:
-        self._vao.release()
+        self._sim_vao.release()
+        self._disp_vao.release()
         self._vbo.release()
         self._sim_prog.release()
         self._disp_prog.release()
