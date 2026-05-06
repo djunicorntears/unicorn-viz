@@ -10,7 +10,7 @@ title = "Unicorn Viz"
 # "sequential" or "random"
 mode = "sequential"
 # seconds per effect in auto-playlist mode
-effect_duration = 60
+effect_duration = 5
 # transition type: "cut", "crossfade", "scanwipe"
 transition = "scanwipe"
 transition_duration = 1.0
