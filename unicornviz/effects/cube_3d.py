@@ -197,8 +197,9 @@ class Cube3D(BaseEffect):
         self.ctx.enable(moderngl.DEPTH_TEST)
         self.ctx.clear(0.0, 0.0, 0.0, 1.0, depth=1.0)
 
-        self._prog["uMVP"].write(mvp.T.tobytes())
-        self._prog["uModel"].write(model_t.T.tobytes())
+        # Use direct row-major byte layout expected by moderngl uniform writer.
+        self._prog["uMVP"].write(mvp.tobytes())
+        self._prog["uModel"].write(model_t.tobytes())
         self._prog["uLightDir"].value = (0.6, 0.8, 0.5)
         self._prog["uSpecPow"].value  = 32.0
         self._prog["uBass"].value     = self._bass

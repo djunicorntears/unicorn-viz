@@ -13,7 +13,6 @@ Audio reactivity:
 """
 from __future__ import annotations
 
-import math
 import numpy as np
 import moderngl
 
@@ -60,7 +59,7 @@ void main() {
     vec2 px = 1.0 / iResolution;
 
     // Sample neighbourhood with upward advection
-    float lift = px.y * (0.8 + iBass * 0.6);
+    float lift = px.y * (1.35 + iBass * 0.9);
     float c  = texture(prev, v_uv).r;
     float u  = texture(prev, v_uv + vec2( 0.0,  lift)).r;
     float ul = texture(prev, v_uv + vec2(-px.x, lift)).r;
@@ -69,18 +68,18 @@ void main() {
     float r  = texture(prev, v_uv + vec2( px.x, 0.0 )).r;
 
     // Weighted diffuse + advect
-    float heat = (u * 1.6 + ul * 0.7 + ur * 0.7 + l * 0.2 + r * 0.2 + c * 0.6) / 4.0;
+    float heat = (u * 1.8 + ul * 0.8 + ur * 0.8 + l * 0.3 + r * 0.3 + c * 0.8) / 4.8;
 
     // Cooling
-    float cool = 0.018 + iTreble * 0.008;
+    float cool = 0.006 + iTreble * 0.004;
     heat = max(0.0, heat - cool);
 
     // Bottom ignition strip
-    float ignY = 2.5 * px.y;
+    float ignY = 10.0 * px.y;
     if (v_uv.y < ignY) {
         float n = hash(vec2(v_uv.x * 73.1, iTime * 0.3));
         float n2 = hash(vec2(v_uv.x * 17.9, iTime * 0.17 + 5.3));
-        float base = iIntensity + iBass * 0.25 + iBeat * 0.4;
+        float base = iIntensity + iBass * 0.55 + iBeat * 0.75;
         heat = mix(heat, clamp(base * (0.7 + 0.3 * n), 0.0, 1.0),
                    0.55 + 0.35 * n2);
     }
@@ -182,29 +181,31 @@ class Fire(BaseEffect):
         ctx = self.ctx
         spd  = self.parameters["speed"]
 
-        # --- Simulation step ---
-        if self._ping:
-            read_tex, write_fbo = self._tex_b, self._fbo_a
-        else:
-            read_tex, write_fbo = self._tex_a, self._fbo_b
-        self._ping = not self._ping
+        # --- Simulation step(s) ---
+        # Multiple sub-steps per frame gives taller, fuller flames.
+        steps = max(2, int(4 * spd))
+        for _ in range(steps):
+            if self._ping:
+                read_tex, write_fbo = self._tex_b, self._fbo_a
+            else:
+                read_tex, write_fbo = self._tex_a, self._fbo_b
+            self._ping = not self._ping
 
-        write_fbo.use()
-        ctx.viewport = (0, 0, _SIM_W, _SIM_H)
-        read_tex.use(location=0)
-        self._sim_prog["prev"].value       = 0
-        self._sim_prog["iResolution"].value = (float(_SIM_W), float(_SIM_H))
-        self._sim_prog["iBass"].value      = self._bass * spd
-        self._sim_prog["iBeat"].value      = self._beat
-        self._sim_prog["iTreble"].value    = self._treble
-        self._sim_prog["iTime"].value      = self.time
-        self._sim_prog["iIntensity"].value = float(self.parameters["intensity"])
-        self._vao.render(moderngl.TRIANGLE_STRIP)
+            write_fbo.use()
+            ctx.viewport = (0, 0, _SIM_W, _SIM_H)
+            read_tex.use(location=0)
+            self._sim_prog["prev"].value       = 0
+            self._sim_prog["iResolution"].value = (float(_SIM_W), float(_SIM_H))
+            self._sim_prog["iBass"].value      = self._bass * spd
+            self._sim_prog["iBeat"].value      = self._beat
+            self._sim_prog["iTreble"].value    = self._treble
+            self._sim_prog["iTime"].value      = self.time
+            self._sim_prog["iIntensity"].value = float(self.parameters["intensity"])
+            self._vao.render(moderngl.TRIANGLE_STRIP)
 
         # --- Display ---
-        ctx.screen.use()
+        # Render to whichever target app.py currently has bound (screen or transition FBO).
         ctx.viewport = (0, 0, self.width, self.height)
-        ctx.clear(0.0, 0.0, 0.0, 1.0)
         # The texture we just wrote into is the current heat field
         if self._ping:
             self._tex_b.use(location=0)

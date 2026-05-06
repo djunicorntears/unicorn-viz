@@ -21,9 +21,9 @@ transition_duration = 1.0
 device = ""
 fft_bands = 512
 buffer_seconds = 2.0
-# Master audio reactivity gain (1.0 = default, 2.0 = twice as reactive).
-# Raise this for quieter source material or a more energetic visual feel.
-gain = 1.5
+# Master visual reactivity multiplier (1.0 = default, 2.0 = stronger response).
+# Raise this for a more aggressive, DJ-driven feel across all effects.
+reactivity = 1.5
 
 [midi]
 # Set to name/substring of MIDI device, or leave empty to disable

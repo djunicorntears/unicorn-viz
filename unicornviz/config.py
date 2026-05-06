@@ -39,6 +39,7 @@ _DEFAULTS: dict[str, Any] = {
         "device": "",
         "fft_bands": 512,
         "buffer_seconds": 2.0,
+        "reactivity": 1.5,
     },
     "midi": {
         "device": "",

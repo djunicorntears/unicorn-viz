@@ -231,8 +231,7 @@ class Water(BaseEffect):
 
         self._step_idx = (self._step_idx + 1) % 3
 
-        # Display
-        ctx.screen.use()
+        # Display to currently bound target (app may be rendering into transition FBO)
         ctx.viewport = (0, 0, self.width, self.height)
         ctx.clear(0.0, 0.0, 0.0, 1.0)
         _, disp_tex = self._fbos[(self._step_idx - 1) % 3]

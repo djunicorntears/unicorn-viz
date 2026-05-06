@@ -80,21 +80,39 @@ out vec4 fragColor;
 float hash(float n) { return fract(sin(n) * 43758.5453123); }
 float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
-// Returns 1 if pixel (col, row) in a character cell is lit
-float glyph(vec2 cell, float ch, vec2 frac) {
-    // Encode a 4x6 bitmap for 8 pseudo-chars (binary + ACGT)
-    // Packed as 24-bit integer patterns; we use hash to vary per cell
-    float bit = floor(ch * 8.0);
-    // Simple: odd columns lit creates a glyph-like silhouette
-    float cx = frac.x;
-    float cy = frac.y;
-    float v = hash(floor(cx * 4.0) + floor(cy * 6.0) * 4.0 + ch * 97.3 + cell.x * 13.7);
-    return step(0.45, v);
+// 5x7 bitmap glyphs for: 0,1,A,C,G,T
+float glyph6(int id, vec2 frac) {
+    int x = int(floor(frac.x * 5.0));
+    int y = int(floor(frac.y * 7.0));
+    if (x < 0 || x > 4 || y < 0 || y > 6) return 0.0;
+
+    // Common edges
+    bool l = (x == 0);
+    bool r = (x == 4);
+    bool t = (y == 0);
+    bool b = (y == 6);
+    bool m = (y == 3);
+
+    bool on = false;
+    if (id == 0) {                 // '0'
+        on = (t || b || l || r) && !(m && (x > 0 && x < 4));
+    } else if (id == 1) {          // '1'
+        on = (x == 2) || (y == 1 && x == 1) || (b && x > 0 && x < 4);
+    } else if (id == 2) {          // 'A'
+        on = t || m || l || r;
+    } else if (id == 3) {          // 'C'
+        on = l || t || b;
+    } else if (id == 4) {          // 'G'
+        on = l || t || b || (x == 4 && y >= 3) || (y == 3 && x >= 2);
+    } else {                        // 'T'
+        on = t || (x == 2);
+    }
+    return on ? 1.0 : 0.0;
 }
 
 void main() {
-    // Character grid: ~80 cols on a 1920-wide screen
-    float charW = iResolution.x / 80.0;
+    // Character grid: wider cells so symbols are legible
+    float charW = iResolution.x / 64.0;
     float charH = charW * 1.5;
 
     vec2 cell = floor(v_uv * iResolution / vec2(charW, charH));
@@ -105,14 +123,14 @@ void main() {
     float nRows = iResolution.y / charH;
 
     // Each column has an offset and speed
-    float speed  = 4.0 + hash(col * 7.3) * 10.0 + iBass * 6.0;
+    float speed  = 3.0 + hash(col * 7.3) * 7.0 + iBass * 5.0;
     float offset = hash(col * 13.1) * nRows;
     float head   = mod(iTime * speed + offset, nRows * 1.4);
 
     // Distance below the head
     float dist = head - row;
 
-    if (dist < 0.0 || dist > 18.0) {
+    if (dist < 0.0 || dist > 22.0) {
         fragColor = vec4(0.0);
         return;
     }
@@ -121,14 +139,15 @@ void main() {
     float colType = step(0.5, hash(col * 31.7));
 
     // Brightness falls off below head
-    float bright = exp(-dist * 0.25) * (0.8 + iTreble * 0.4);
+    float bright = exp(-dist * 0.18) * (0.85 + iTreble * 0.5);
     // Head pixel extra bright
     if (dist < 1.0) bright = 1.0 + iTreble * 0.6;
 
     // Changing character: flicker faster near head
-    float t = iTime * (2.0 + (1.0 - dist / 18.0) * 6.0);
-    float ch = hash2(vec2(col, floor(t)));
-    float lit = glyph(cell, ch, frac);
+    float t = iTime * (1.6 + (1.0 - dist / 22.0) * 4.0);
+    float r = hash2(vec2(col, floor(t) + row * 0.17));
+    int gid = int(floor(r * 6.0));
+    float lit = glyph6(gid, frac);
 
     vec3 cyan    = vec3(0.0, 1.0, 0.95);
     vec3 purple  = vec3(0.75, 0.0, 1.0);

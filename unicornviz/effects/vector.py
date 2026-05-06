@@ -211,7 +211,7 @@ class Vector(BaseEffect):
             pass
 
         # Draw all three shapes simultaneously, spread across the screen
-        z_positions = [-2.0, -3.2, -5.0]
+        z_positions = [-2.6, -4.2, -6.8]
         angles = [
             (self._rx,   self._ry,   self._rz),
             (self._rx2,  self._ry,   self._ry2),
@@ -220,16 +220,16 @@ class Vector(BaseEffect):
 
         for idx, ((rx, ry, rz), z_pos) in enumerate(zip(angles, z_positions)):
             _, col, scale = _SHAPES[idx]
-            scale_val = scale * (1.0 + self._bass * 0.3 + (0.15 if idx == self._shape_idx else 0.0))
+            scale_val = scale * (0.8 + self._bass * 0.35 + (0.22 if idx == self._shape_idx else 0.0))
 
             rot = _rot_x(rx) @ _rot_y(ry) @ _rot_z(rz)
             trans = _translate_z(z_pos)
             mvp = self._proj @ trans @ rot
 
-            bright = 0.7 + self._beat * 0.5 + (0.3 if idx == self._shape_idx else 0.0)
+            bright = 1.0 + self._beat * 0.7 + (0.45 if idx == self._shape_idx else 0.0)
             bright *= 1.0 + self._bass * 0.4
 
-            self._prog["uMVP"].write(mvp.T.tobytes())
+            self._prog["uMVP"].write(mvp.tobytes())
             self._prog["uScale"].value  = scale_val
             self._prog["uColor"].value  = col
             self._prog["uBrightness"].value = bright

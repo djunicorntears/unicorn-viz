@@ -239,8 +239,6 @@ def _build_font_texture(ctx: moderngl.Context) -> moderngl.Texture:
             codepoint = 32 + idx
             for row in range(8):
                 byte = font_bytes[idx * 8 + row]
-                # Mirror bits: embedded data has LSB = leftmost pixel
-                byte = int(f'{byte:08b}'[::-1], 2)
                 for col in range(8):
                     if byte & (0x80 >> col):
                         data[row, codepoint * 8 + col] = 255
@@ -351,8 +349,9 @@ void main() {
         cx = x
         for ch in text:
             code = ord(ch) & 0x7F
-            u0 = (code * 8) / atlas_w
-            u1 = u0 + 8.0 / atlas_w
+            # Swap U so glyphs are not mirrored on Mesa/X11 paths.
+            u1 = (code * 8) / atlas_w
+            u0 = u1 + 8.0 / atlas_w
             # Atlas is stored top-row-first in numpy → row 0 = bottom in GL.
             # Swap v so glyph row 0 (top of char) maps to screen top.
             v0 = 1.0
