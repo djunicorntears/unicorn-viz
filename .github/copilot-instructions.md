@@ -223,8 +223,9 @@ out vec2 out_pos;
 - Commit messages: imperative mood, 72-char subject, blank line before body.
   - ✅ `Add Raymarcher effect with fog and audio-reactive shockwave`
   - ❌ `Added raymarcher, fixed some stuff`
-- Never commit `*.pyc`, `__pycache__/`, `.venv/`, or `.DS_Store`.
+- Never commit `*.pyc`, `__pycache__/`, `.venv/`, `.DS_Store`, `notes.txt`, or `todo.txt`.
 - Screenshots (`unicornviz_*.png`) are gitignored; don't commit them.
+- Commit & push after each substantial change; avoid large monolithic commits.
 
 ---
 

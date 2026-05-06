@@ -17,7 +17,7 @@ transition_duration = 1.0
 
 [audio]
 # Set to name/substring of PipeWire monitor device, or leave empty for auto-detect
-device = ""
+device = "Monitor"
 fft_bands = 512
 # seconds of audio history to keep
 buffer_seconds = 2.0
@@ -39,6 +39,7 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 #   "ANSI Viewer"    — scrolling CP437 art with CRT phosphor shader  (key: ,  ACiD: .)
 #   "Audio Spectrum" — FFT bars + oscilloscope (mode 0=bars 1=wave 2=both)
 #   "Copper Bars"    — Amiga-style oscillating colour bars
+#   "Cube 3D"        — Solid Phong-shaded neon cube with beat hue-shift
 #   "Fire"           — Cellular-automaton fire simulation
 #   "Fractal Zoom"   — Mandelbrot deep-zoom with beat-burst
 #   "Metaballs"      — GLSL SDF metaball field
@@ -48,6 +49,7 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 #   "Sine Scroller"  — Multi-sine bouncing text scroller
 #   "Starfield"      — 3-D warp-speed star tunnel
 #   "Tunnel"         — Texture-mapped rotating tunnel
+#   "Vector"         — Spinning wireframe polyhedra (cube/octa/icosa)
 #
 # Example overrides:
 # [effects.Plasma]

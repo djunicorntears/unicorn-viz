@@ -409,8 +409,8 @@ void main() {
             alpha = min(1.0, self._flash_timer * 2.0)
             self._draw_text(
                 self._flash_text,
-                20, self._height - 40,
-                scale=2.0,
+                20, self._height - 80,
+                scale=4.0,
                 color=(1.0, 0.8, 0.0, alpha),
             )
 
@@ -418,7 +418,7 @@ void main() {
             self._draw_text(
                 self._name_text,
                 20, 20,
-                scale=3.0,
+                scale=6.0,
                 color=(0.0, 1.0, 1.0, 0.85),
             )
 
@@ -426,9 +426,9 @@ void main() {
             self._render_help()
 
     def _render_help(self) -> None:
-        pad = 20.0
-        scale = 1.8
-        lh = 8 * scale + 4
+        pad = 30.0
+        scale = 3.6
+        lh = 8 * scale + 6
         y = pad
         for line in self.HELP_TEXT:
             self._draw_text(line, pad, y, scale=scale, color=(0.2, 1.0, 0.4, 0.95))

@@ -166,7 +166,8 @@ void main() {
     def _make_fbo(self) -> moderngl.Framebuffer:
         tex = self._ctx.texture((self._width, self._height), 4)
         tex.filter = moderngl.LINEAR, moderngl.LINEAR
-        return self._ctx.framebuffer(color_attachments=[tex])
+        depth = self._ctx.depth_renderbuffer((self._width, self._height))
+        return self._ctx.framebuffer(color_attachments=[tex], depth_attachment=depth)
 
     # ------------------------------------------------------------------ #
     # Effect management                                                    #

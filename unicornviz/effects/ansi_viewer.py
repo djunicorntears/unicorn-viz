@@ -39,17 +39,17 @@ _FRAG = """
 #version 330
 uniform sampler2D ansi_tex;
 uniform float     iTime;
-uniform float     iScroll;   // vertical scroll 0..1
+uniform float     iScrollUV;  // UV-space top of viewport (0..1-iWindowH)
+uniform float     iWindowH;   // fraction of texture height that fits on screen
 uniform float     iBass;
 uniform float     iBeat;
-uniform float     iGlow;     // 0 = no glow, 1 = full CRT phosphor
-uniform float     iCRT;      // 0 = flat, 1 = full barrel distortion
+uniform float     iGlow;
+uniform float     iCRT;
 uniform vec2      iResolution;
 
 in  vec2 v_uv;
 out vec4 fragColor;
 
-// Barrel distortion
 vec2 crt_uv(vec2 uv) {
     vec2 cc = uv * 2.0 - 1.0;
     float dist = dot(cc, cc);
@@ -59,14 +59,13 @@ vec2 crt_uv(vec2 uv) {
 }
 
 void main() {
-    // Scroll: shift v coordinate
+    // Map screen UV into the scrolling window of the texture
     vec2 uv = v_uv;
-    uv.y = fract(uv.y + iScroll);
+    uv.y = iScrollUV + uv.y * iWindowH;
 
     // CRT barrel warp
     vec2 cuv = crt_uv(uv);
 
-    // Clamp — show black outside art
     if (cuv.x < 0.0 || cuv.x > 1.0 || cuv.y < 0.0 || cuv.y > 1.0) {
         fragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
@@ -74,11 +73,11 @@ void main() {
 
     vec3 col = texture(ansi_tex, cuv).rgb;
 
-    // Scanlines — emulate phosphor rows
+    // Scanlines
     float scan = 1.0 - 0.18 * sin(cuv.y * iResolution.y * 3.14159 * 2.0);
     col *= scan;
 
-    // Phosphor glow — sample neighbours
+    // Phosphor glow
     if (iGlow > 0.01) {
         vec2 px = vec2(1.0) / iResolution;
         vec3 glow =
@@ -94,14 +93,11 @@ void main() {
     float vig = 1.0 - dot(vc, vc) * 0.25;
     col *= vig;
 
-    // Slight green phosphor tint for CRT feel
     col.g = mix(col.g, col.g * 1.05, iCRT * 0.3);
 
-    // Subtle CRT tube flicker — driven by iTime
     float flicker = 0.97 + 0.03 * fract(sin(iTime * 7.3 + 1.5) * 4375.5);
     col *= flicker;
 
-    // Overall brightness flash on beat
     col *= 1.0 + iBeat * 0.15;
 
     fragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
@@ -197,8 +193,17 @@ class ANSIViewer(BaseEffect):
     def render(self) -> None:
         if self._ansi_tex is None:
             return
+        # Compute UV window height: scale art to fill screen width, then
+        # the visible portion of the texture height is screen_h / (screen_w / tex_w)
+        tex_w, tex_h = self._ansi_tex.size
+        scale = self.width / tex_w if tex_w > 0 else 1.0
+        visible_h = self.height / scale
+        window_h = min(1.0, visible_h / tex_h) if tex_h > 0 else 1.0
+        scroll_uv = self._scroll * max(0.0, 1.0 - window_h)
+
         self._prog["iTime"].value = self.time
-        self._prog["iScroll"].value = self._scroll
+        self._prog["iScrollUV"].value = scroll_uv
+        self._prog["iWindowH"].value = window_h
         self._prog["iBass"].value = self._bass
         self._prog["iBeat"].value = self._beat
         self._prog["iGlow"].value = self.parameters["glow"]
