@@ -276,8 +276,16 @@ void main() {
 
             # Auto-playlist advance
             if not self._paused and self._next_effect is None:
+                allow_advance = True
+                try:
+                    from unicornviz.effects.ansi_viewer import ANSIViewer
+                    if isinstance(self._current_effect, ANSIViewer):
+                        allow_advance = self._current_effect.reached_bottom
+                except Exception:
+                    pass
+
                 demo_timer += dt
-                if demo_timer >= effect_duration:
+                if demo_timer >= effect_duration and allow_advance:
                     demo_timer = 0.0
                     next_cls = playlist.advance()
                     self._switch_effect(next_cls)

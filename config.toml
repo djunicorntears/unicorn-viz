@@ -39,10 +39,14 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 # Override per-effect parameter defaults here, keyed by Python class name.
 #
 # Available effects (use these names in [playlist] sequence or start_effect):
+#   "Alien"         — Bioluminescent alien biome landscape
 #   "ANSI Viewer"    — scrolling CP437 art with CRT phosphor shader  (key: ,  ACiD: .)
-#   "Audio Spectrum" — FFT bars + oscilloscope (mode 0=bars 1=wave 2=both)
+#   "Audio Spectrum" — FFT bars + matrix/binary DNA rain background
+#   "Cosmos"        — Nebula clouds, stars, and warp streaks
 #   "Copper Bars"    — Amiga-style oscillating colour bars
 #   "Cube 3D"        — Solid Phong-shaded neon cube with beat hue-shift
+#   "Dali"          — Surreal melting forms and mirage distortions
+#   "Escher"        — Impossible-style tiling corridor illusion
 #   "Fire"           — Cellular-automaton fire simulation
 #   "Fractal Zoom"   — Mandelbrot deep-zoom with beat-burst
 #   "Metaballs"      — GLSL SDF metaball field
@@ -52,7 +56,9 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 #   "Sine Scroller"  — Multi-sine bouncing text scroller
 #   "Starfield"      — 3-D warp-speed star tunnel
 #   "Tunnel"         — Texture-mapped rotating tunnel
+#   "Van Gogh"      — Painterly swirling night-sky brushstrokes
 #   "Vector"         — Spinning wireframe polyhedra (cube/octa/icosa)
+#   "Water"         — Audio-driven GPU ripple/caustic simulation
 #
 # Example overrides:
 # [effects.Plasma]

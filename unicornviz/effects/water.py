@@ -169,7 +169,7 @@ class Water(BaseEffect):
         )
 
         def _make_fbo() -> tuple[moderngl.Framebuffer, moderngl.Texture]:
-            tex = self.ctx.texture((_SIM_W, _SIM_H), 4, dtype="f2")
+            tex = self.ctx.texture((_SIM_W, _SIM_H), 4, dtype="f4")
             tex.filter = moderngl.LINEAR, moderngl.LINEAR
             tex.repeat_x = True
             tex.repeat_y = True
@@ -239,7 +239,7 @@ class Water(BaseEffect):
         # Display to currently bound target (app may be rendering into transition FBO)
         if target_fbo is not None and hasattr(target_fbo, "use"):
             target_fbo.use()
-        elif ctx.screen is not None:
+        elif ctx.screen is not None and hasattr(ctx.screen, "use"):
             ctx.screen.use()
         ctx.viewport = (0, 0, self.width, self.height)
         ctx.clear(0.0, 0.0, 0.0, 1.0)

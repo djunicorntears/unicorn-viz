@@ -144,6 +144,7 @@ class ANSIViewer(BaseEffect):
         self._bass = 0.0
         self._beat = 0.0
         self._title = ""
+        self._window_h_uv = 1.0
 
         self._load_current()
 
@@ -202,6 +203,7 @@ class ANSIViewer(BaseEffect):
         scale = self.width / tex_w if tex_w > 0 else 1.0
         visible_h = self.height / scale
         window_h = min(1.0, visible_h / tex_h) if tex_h > 0 else 1.0
+        self._window_h_uv = window_h
         scroll_uv = self._scroll * max(0.0, 1.0 - window_h)
 
         self._prog["iTime"].value = self.time
@@ -219,6 +221,13 @@ class ANSIViewer(BaseEffect):
     @property
     def current_title(self) -> str:
         return self._title
+
+    @property
+    def reached_bottom(self) -> bool:
+        # If art fits in viewport, it's effectively already complete.
+        if self._window_h_uv >= 0.999:
+            return True
+        return self._scroll >= 0.995
 
     def destroy(self) -> None:
         self._vao.release()
