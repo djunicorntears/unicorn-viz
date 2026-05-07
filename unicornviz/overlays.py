@@ -273,6 +273,8 @@ class Overlays:
         " S           Screenshot",
         " H           This help",
         " ESC         Quit",
+        " T           Auto-advance on/off",
+        " U           Show splash anytime",
     ]
 
     def __init__(

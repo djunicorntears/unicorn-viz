@@ -39,6 +39,7 @@ class App:
         self.cfg = Config(config_path)
         self._running = False
         self._paused = False
+        self._auto_advance = True  # Toggle with hotkey T
         self._ctx: moderngl.Context | None = None
         self._window = None
         self._gl_context = None
@@ -48,6 +49,9 @@ class App:
         self._transition_duration: float = self.cfg.get(
             "demo", "transition_duration", default=1.0
         )
+        self._audio: AudioData | None = None
+        self._midi_manager: MidiManager | None = None
+        self._splash_config: dict | None = None
         self._fbo_a: moderngl.Framebuffer | None = None
         self._fbo_b: moderngl.Framebuffer | None = None
         self._blend_prog: moderngl.Program | None = None
@@ -190,6 +194,30 @@ void main() {
         self._next_effect = self._instantiate(cls)
         self._transition_t = 0.0
 
+    def show_splash(self) -> None:
+        """Replay the splash screen (hotkey U)."""
+        if self._splash_config is None:
+            return
+        try:
+            from unicornviz.splash import Splash
+            config = self._splash_config
+            def _splash_bass() -> float:
+                audio = config["audio_manager"].get_audio_data()
+                return float(audio.bass) if audio else 0.0
+            
+            splash = Splash(
+                self._ctx,
+                self._width,
+                self._height,
+                image_path=config["path"],
+                duration=config["duration_audio"],
+                bass_supplier=_splash_bass,
+            )
+            splash.run(self._window)
+            splash.destroy()
+        except Exception as e:
+            log.error("Failed to show splash: %s", e)
+
     # ------------------------------------------------------------------ #
     # Main loop                                                            #
     # ------------------------------------------------------------------ #
@@ -208,7 +236,8 @@ void main() {
 
         # Splash screen — shown before any effect loads
         splash_path = self.cfg.get("splash", "image", default="images/unicorn-viz-01.png")
-        splash_duration = float(self.cfg.get("splash", "duration", default=4.0))
+        splash_duration_audio = float(self.cfg.get("splash", "duration_audio", default=10.0))
+        splash_duration_silent = float(self.cfg.get("splash", "duration_silent", default=4.0))
         if Path(splash_path).exists():
             from unicornviz.splash import Splash
 
@@ -220,9 +249,10 @@ void main() {
                 self._width,
                 self._height,
                 image_path=splash_path,
-                duration=splash_duration,
+                duration=splash_duration_audio,  # Will be adjusted based on audio detection
                 bass_supplier=_splash_bass,
             )
+            # Decide duration based on audio during splash run
             if splash.run(self._window):
                 # User pressed Esc during splash — quit immediately
                 splash.destroy()
@@ -231,7 +261,22 @@ void main() {
                 sdl2.SDL_DestroyWindow(self._window)
                 sdl2.SDL_Quit()
                 return
+            # Store splash for later replay (hotkey U)
+            self._splash_config = {
+                "path": splash_path,
+                "duration_audio": splash_duration_audio,
+                "duration_silent": splash_duration_silent,
+                "bass_supplier": _splash_bass,
+            }
             splash.destroy()
+
+        # Store splash config for later replay via hotkey U
+        self._splash_config = {
+            "path": splash_path,
+            "duration_audio": splash_duration_audio,
+            "duration_silent": splash_duration_silent,
+            "audio_manager": audio_manager,
+        }
 
         midi_device_hint = self.cfg.get("midi", "device", default="")
         midi_manager = MidiManager(device_hint=midi_device_hint)
@@ -283,7 +328,7 @@ void main() {
                 pass   # MidiManager uses a callback thread; forward via action hooks
 
             # Auto-playlist advance
-            if not self._paused and self._next_effect is None:
+            if not self._paused and self._next_effect is None and self._auto_advance:
                 allow_advance = True
                 try:
                     from unicornviz.effects.ansi_viewer import ANSIViewer

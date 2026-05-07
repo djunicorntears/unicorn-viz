@@ -54,20 +54,20 @@ out vec4 fragColor;
 void main() {
     vec4 col = texture(splash_tex, v_uv);
 
-    // Audio-reactive tint + bloom pulse.
+    // Dramatic audio-reactive tint + bloom pulse.
     vec3 tint = vec3(
-        0.75 + 0.25 * sin(hue_time + 0.0),
-        0.75 + 0.25 * sin(hue_time + 2.09),
-        0.75 + 0.25 * sin(hue_time + 4.18)
+        0.5 + 0.5 * sin(hue_time + 0.0),
+        0.5 + 0.5 * sin(hue_time + 2.09),
+        0.5 + 0.5 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
-    // Bass-driven bloom and color modulation
-    rgb *= 1.0 + pulse * 0.35;
-    rgb = mix(rgb, rgb * tint, clamp(pulse * 0.65, 0.0, 0.8));
-    // Ensure visible saturation boost
-    rgb += vec3(0.08) * pulse;
+    // Aggressive bloom and saturation
+    rgb *= 1.0 + pulse * 0.72;
+    rgb = mix(rgb, rgb * tint * 1.2, clamp(pulse * 0.85, 0.0, 1.0));
+    rgb += vec3(0.18) * pulse;  // Bright ambient boost
+    rgb += tint * 0.22 * pulse;  // Color-coded glow
 
-    fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
+    fragColor = vec4(clamp(rgb, 0.0, 1.5), col.a * alpha);
 }
 """
 
@@ -91,6 +91,7 @@ class Splash:
         self._done = False
         self._bass_supplier = bass_supplier
         self._pulse = 0.0
+        self._peak_audio = 0.0  # Track max audio level seen
 
         self._prog = ctx.program(vertex_shader=_VERT, fragment_shader=_FRAG)
 
@@ -175,10 +176,11 @@ class Splash:
             if self._bass_supplier is not None:
                 try:
                     bass = float(self._bass_supplier())
+                    self._peak_audio = max(self._peak_audio, bass)
                 except Exception as e:
                     log.debug(f"Splash bass supplier error: {e}")
                     bass = 0.0
-            self._pulse = self._pulse * 0.82 + max(0.0, bass) * 0.18
+            self._pulse = self._pulse * 0.80 + max(0.0, bass) * 0.20
             if elapsed < 0.5 and int(elapsed * 60) % 6 == 0:  # Log first few frames
                 log.info(f"Splash frame: elapsed={elapsed:.2f}s, bass={bass:.3f}, pulse={self._pulse:.3f}")
 
@@ -217,7 +219,10 @@ class Splash:
         self._prog["hue_time"].value = float(hue_time)
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
-    def resize(self, width: int, height: int) -> None:
+    @property
+    def had_audio(self) -> bool:
+        """Whether significant audio was detected during splash."""
+        return self._peak_audio > 0.15
         """Called if the window is resized during the splash."""
         self._width = width
         self._height = height

@@ -10,7 +10,7 @@ title = "Unicorn Viz"
 # "sequential" or "random"
 mode = "sequential"
 # seconds per effect in auto-playlist mode
-effect_duration = 5
+effect_duration = 10
 # transition type: "cut", "crossfade", "scanwipe"
 transition = "scanwipe"
 transition_duration = 1.0
@@ -71,8 +71,10 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 [splash]
 # Path to splash screen image (PNG). Set to empty string to disable.
 image    = "images/unicorn-viz-01.png"
-# Total splash display time in seconds (includes 0.6s fade-in + 0.8s fade-out)
-duration = 4.0
+# Duration when audio is present (seconds) — animated with color pulse/bloom
+duration_audio = 10.0
+# Duration when no audio detected (seconds) — static display
+duration_silent = 4.0
 
 [playlist]
 # Start on this effect (use the display NAME from the list above).

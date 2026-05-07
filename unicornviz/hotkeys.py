@@ -173,6 +173,14 @@ class HotkeyHandler:
         elif sym == sdl2.SDLK_s:
             self._screenshot()
 
+        elif sym == sdl2.SDLK_u:
+            a.show_splash()
+
+        elif sym == sdl2.SDLK_t:
+            a._auto_advance = not a._auto_advance
+            mode = "ON" if a._auto_advance else "OFF"
+            o.flash_message(f"Auto-advance: {mode}", 1.5)
+
     def _screenshot(self) -> None:
         import datetime
         import numpy as np
