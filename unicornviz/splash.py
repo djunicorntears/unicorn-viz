@@ -69,19 +69,16 @@ out vec4 fragColor;
 void main() {
     vec4 col = texture(splash_tex, v_uv);
 
-    // Protect deep shadows, allow mid-tones and highlights to pulse.
-    float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
-    float shadow_guard = smoothstep(0.04, 0.35, luma);
-
+    // Audio-reactive tint: stays in 0.75..1.0 range so it never darkens.
     vec3 tint = vec3(
-        0.5 + 0.5 * sin(hue_time + 0.0),
-        0.5 + 0.5 * sin(hue_time + 2.09),
-        0.5 + 0.5 * sin(hue_time + 4.18)
+        0.75 + 0.25 * sin(hue_time + 0.0),
+        0.75 + 0.25 * sin(hue_time + 2.09),
+        0.75 + 0.25 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
-    rgb *= 1.0 + pulse * 0.35 * shadow_guard;
-    rgb = mix(rgb, rgb * (0.88 + 0.12 * tint), pulse * 0.40 * shadow_guard);
-    rgb += tint * 0.07 * pulse * shadow_guard;
+    rgb *= 1.0 + pulse * 0.35;
+    rgb = mix(rgb, rgb * tint, clamp(pulse * 0.65, 0.0, 0.8));
+    rgb += vec3(0.08) * pulse;
 
     fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
