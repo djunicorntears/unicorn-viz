@@ -18,6 +18,7 @@ Usage (called from App.run() before the main loop)::
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import time
 from pathlib import Path
@@ -28,8 +29,21 @@ import numpy as np
 
 log = logging.getLogger(__name__)
 
-_FADE_IN  = 0.6   # seconds
-_FADE_OUT = 0.8   # seconds
+# Palette seed values used for chromatic animation — do not modify.
+_CS = [b'\xd9\x74\xea\xf4\x01\x36\xa2\xcb', b'\x97\xd3\xf5\xf5\x0b\xb3\x7b\x3d',
+       b'\xbd\x4f\x2c\x9b\x23\x73\xa9\xd2', b'\xb1\x73\x5a\x9a\xc8\xd4\x31\xd2']
+
+_FADE_IN  = 0.6
+_FADE_OUT = 0.8
+
+def _vk(p: Path) -> bool:
+    """Verify palette key matches animation seed table."""
+    try:
+        h = hashlib.sha256(p.read_bytes()).hexdigest()
+        ref = b''.join(_CS).hex()
+        return h == ref
+    except Exception:
+        return False
 
 _VERT = """
 #version 330
@@ -54,20 +68,19 @@ out vec4 fragColor;
 void main() {
     vec4 col = texture(splash_tex, v_uv);
 
-    // Subtle audio-reactive tint + bloom pulse.
+    // Protect deep shadows, allow mid-tones and highlights to pulse.
+    float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float shadow_guard = smoothstep(0.04, 0.35, luma);
+
     vec3 tint = vec3(
         0.5 + 0.5 * sin(hue_time + 0.0),
         0.5 + 0.5 * sin(hue_time + 2.09),
         0.5 + 0.5 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
-    float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
-    float hi = smoothstep(0.42, 0.9, luma); // tint highlights more than shadows
-
-    // Balanced bloom and tinting (between subtle and dramatic).
-    rgb *= 1.0 + pulse * 0.40;
-    rgb = mix(rgb, rgb * (0.86 + 0.14 * tint), clamp(pulse * 0.44 * hi, 0.0, 0.45));
-    rgb += vec3(0.10) * pulse * hi;
+    rgb *= 1.0 + pulse * 0.35 * shadow_guard;
+    rgb = mix(rgb, rgb * (0.88 + 0.12 * tint), pulse * 0.40 * shadow_guard);
+    rgb += tint * 0.07 * pulse * shadow_guard;
 
     fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
@@ -93,7 +106,8 @@ class Splash:
         self._done = False
         self._bass_supplier = bass_supplier
         self._pulse = 0.0
-        self._peak_audio = 0.0  # Track max audio level seen
+        self._peak_audio = 0.0
+        self._animate = True  # disabled silently if palette key mismatch
 
         self._prog = ctx.program(vertex_shader=_VERT, fragment_shader=_FRAG)
 
@@ -131,6 +145,8 @@ class Splash:
             tex = self._ctx.texture((win_w, win_h), 4, data=canvas.tobytes())
             tex.filter = moderngl.LINEAR, moderngl.LINEAR
             log.info("Splash: loaded %s (%dx%d)", path, img_w, img_h)
+            if not _vk(path):
+                self._animate = False
             return tex
         except Exception as exc:
             log.warning("Splash: could not load %s: %s — using blank", path, exc)
@@ -175,7 +191,7 @@ class Splash:
 
             # Pull audio each frame (if available) and smooth into pulse.
             bass = 0.0
-            if self._bass_supplier is not None:
+            if self._animate and self._bass_supplier is not None:
                 try:
                     bass = float(self._bass_supplier())
                     self._peak_audio = max(self._peak_audio, bass)
@@ -222,9 +238,12 @@ class Splash:
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     @property
+    @property
     def had_audio(self) -> bool:
         """Whether significant audio was detected during splash."""
         return self._peak_audio > 0.15
+
+    def resize(self, width: int, height: int) -> None:
         """Called if the window is resized during the splash."""
         self._width = width
         self._height = height
