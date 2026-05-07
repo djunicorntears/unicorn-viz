@@ -10,7 +10,7 @@ title = "Unicorn Viz"
 # "sequential" or "random"
 mode = "sequential"
 # seconds per effect in auto-playlist mode
-effect_duration = 10
+effect_duration = 15
 # transition type: "cut", "crossfade", "scanwipe"
 transition = "scanwipe"
 transition_duration = 1.0
@@ -29,7 +29,7 @@ reactivity = 1.5
 latency = "high"
 # Try ALSA loopback (hw:Loopback) as fallback when OBS causes PipeWire issues.
 # Set to false to disable ALSA fallback.
-try_alsa_loopback = true
+try_alsa_loopback = false
 
 [midi]
 # Set to name/substring of MIDI device, or leave empty to disable
