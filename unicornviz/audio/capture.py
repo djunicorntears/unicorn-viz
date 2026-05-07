@@ -45,6 +45,7 @@ def _candidate_monitor_devices(hint: str, try_alsa: bool = True) -> list[int | N
     ranked: list[tuple[int, int]] = []
     
     # High priority: ALSA loopback if enabled (stable fallback for OBS recording)
+    alsa_found = False
     if try_alsa:
         for i, d in enumerate(devices):
             if d.get('max_input_channels', 0) < 1:
@@ -52,6 +53,18 @@ def _candidate_monitor_devices(hint: str, try_alsa: bool = True) -> list[int | N
             name = d['name'].lower()
             if 'loopback' in name:
                 ranked.append((0, i))
+                alsa_found = True
+                log.info("Audio: ALSA loopback device available: %d (%s)", i, d['name'])
+    
+    # Check for OBS
+    obs_found = False
+    for i, d in enumerate(devices):
+        if d.get('max_input_channels', 0) < 1:
+            continue
+        name = d['name'].lower()
+        if 'obs' in name:
+            obs_found = True
+            log.info("Audio: OBS detected: device %d (%s)", i, d['name'])
     
     # Rank remaining devices
     for i, d in enumerate(devices):
@@ -192,10 +205,14 @@ class AudioCapture:
         self._active = True
         self._silent_blocks = 0
         if device is not None:
-            log.info('Audio capture: device %d (%s)', device, sd.query_devices(device)['name'])
+            dev_name = sd.query_devices(device)['name']
+            if 'loopback' in dev_name.lower():
+                log.info("Audio capture: using ALSA loopback device %d (%s)", device, dev_name)
+            else:
+                log.info('Audio capture: device %d (%s)', device, dev_name)
         else:
             log.info('Audio capture: using default input device')
-        log.info('Audio capture started at %d Hz, %d ch', native_rate, native_channels)
+        log.info('Audio capture started at %d Hz, %d ch, latency=%s', native_rate, native_channels, self._latency)
 
     def start(self) -> None:
         if not _SD_AVAILABLE:
@@ -247,7 +264,12 @@ class AudioCapture:
                 self._stream.stop()
                 self._stream.close()
                 self._stream = None
-            log.info('Audio capture: source %r silent, trying fallback %r', current, nxt)
+            current_name = sd.query_devices(current)['name'] if current is not None else 'None'
+            next_name = sd.query_devices(nxt)['name'] if nxt is not None else 'default'
+            if nxt is not None and 'loopback' in next_name.lower():
+                log.info('Audio capture: fallback from %r to ALSA loopback %d (%s)', current_name, nxt, next_name)
+            else:
+                log.info('Audio capture: source %r silent, trying fallback %d (%s)', current_name, nxt if nxt is not None else -1, next_name)
             self._open_stream(nxt)
         except Exception as exc:
             log.warning('Audio fallback failed: %s', exc)
