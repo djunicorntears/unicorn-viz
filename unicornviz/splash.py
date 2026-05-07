@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
+from typing import Callable
 
 import moderngl
 import numpy as np
@@ -46,11 +47,24 @@ _FRAG = """
 #version 330
 uniform sampler2D splash_tex;
 uniform float     alpha;
+uniform float     pulse;
+uniform float     hue_time;
 in  vec2 v_uv;
 out vec4 fragColor;
 void main() {
     vec4 col = texture(splash_tex, v_uv);
-    fragColor = vec4(col.rgb, col.a * alpha);
+
+    // Audio-reactive tint + bloom pulse.
+    vec3 tint = vec3(
+        0.75 + 0.25 * sin(hue_time + 0.0),
+        0.75 + 0.25 * sin(hue_time + 2.09),
+        0.75 + 0.25 * sin(hue_time + 4.18)
+    );
+    vec3 rgb = col.rgb;
+    rgb *= 1.0 + pulse * 0.18;
+    rgb = mix(rgb, rgb * tint, clamp(pulse * 0.45, 0.0, 0.7));
+
+    fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
 """
 
@@ -65,12 +79,15 @@ class Splash:
         height: int,
         image_path: str | Path = "images/unicorn-viz-01.png",
         duration: float = 4.0,
+        bass_supplier: Callable[[], float] | None = None,
     ) -> None:
         self._ctx = ctx
         self._width = width
         self._height = height
         self._duration = duration
         self._done = False
+        self._bass_supplier = bass_supplier
+        self._pulse = 0.0
 
         self._prog = ctx.program(vertex_shader=_VERT, fragment_shader=_FRAG)
 
@@ -150,9 +167,18 @@ class Splash:
                         quit_requested = True
                     self._done = True
 
+            # Pull audio each frame (if available) and smooth into pulse.
+            bass = 0.0
+            if self._bass_supplier is not None:
+                try:
+                    bass = float(self._bass_supplier())
+                except Exception:
+                    bass = 0.0
+            self._pulse = self._pulse * 0.84 + max(0.0, bass) * 0.16
+
             if self._done or elapsed >= self._duration:
                 # Final frame at alpha 0 so there's no pop
-                self._render(0.0)
+                self._render(0.0, 0.0, elapsed * 1.5)
                 sdl2.SDL_GL_SwapWindow(window)
                 break
 
@@ -165,13 +191,13 @@ class Splash:
                 remaining = self._duration - elapsed
                 alpha = max(0.0, remaining / _FADE_OUT)
 
-            self._render(alpha)
+            self._render(alpha, self._pulse, elapsed * 1.5)
             sdl2.SDL_GL_SwapWindow(window)
             sdl2.SDL_Delay(16)   # ~60 fps cap
 
         return quit_requested
 
-    def _render(self, alpha: float) -> None:
+    def _render(self, alpha: float, pulse: float, hue_time: float) -> None:
         ctx = self._ctx
         ctx.screen.use()
         ctx.viewport = (0, 0, self._width, self._height)
@@ -181,6 +207,8 @@ class Splash:
         self._tex.use(location=0)
         self._prog["splash_tex"].value = 0
         self._prog["alpha"].value = float(alpha)
+        self._prog["pulse"].value = float(max(0.0, min(1.0, pulse)))
+        self._prog["hue_time"].value = float(hue_time)
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def resize(self, width: int, height: int) -> None:

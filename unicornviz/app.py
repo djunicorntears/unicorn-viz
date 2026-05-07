@@ -202,28 +202,36 @@ void main() {
         self._init_sdl()
         self._init_moderngl()
 
+        # Subsystems (audio starts before splash so splash can react to music)
+        audio_manager = AudioManager(self.cfg)
+        audio_manager.start()
+
         # Splash screen — shown before any effect loads
         splash_path = self.cfg.get("splash", "image", default="images/unicorn-viz-01.png")
         splash_duration = float(self.cfg.get("splash", "duration", default=4.0))
         if Path(splash_path).exists():
             from unicornviz.splash import Splash
+
+            def _splash_bass() -> float:
+                return float(audio_manager.get_audio_data().bass)
+
             splash = Splash(
-                self._ctx, self._width, self._height,
+                self._ctx,
+                self._width,
+                self._height,
                 image_path=splash_path,
                 duration=splash_duration,
+                bass_supplier=_splash_bass,
             )
             if splash.run(self._window):
                 # User pressed Esc during splash — quit immediately
                 splash.destroy()
+                audio_manager.stop()
                 sdl2.SDL_GL_DeleteContext(self._gl_context)
                 sdl2.SDL_DestroyWindow(self._window)
                 sdl2.SDL_Quit()
                 return
             splash.destroy()
-
-        # Subsystems
-        audio_manager = AudioManager(self.cfg)
-        audio_manager.start()
 
         midi_device_hint = self.cfg.get("midi", "device", default="")
         midi_manager = MidiManager(device_hint=midi_device_hint)
