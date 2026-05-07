@@ -54,20 +54,22 @@ out vec4 fragColor;
 void main() {
     vec4 col = texture(splash_tex, v_uv);
 
-    // Dramatic audio-reactive tint + bloom pulse.
+    // Subtle audio-reactive tint + bloom pulse.
     vec3 tint = vec3(
         0.5 + 0.5 * sin(hue_time + 0.0),
         0.5 + 0.5 * sin(hue_time + 2.09),
         0.5 + 0.5 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
-    // Aggressive bloom and saturation
-    rgb *= 1.0 + pulse * 0.72;
-    rgb = mix(rgb, rgb * tint * 1.15, clamp(pulse * 0.68, 0.0, 0.9));
-    rgb += vec3(0.18) * pulse;  // Bright ambient boost
-    rgb += tint * 0.22 * pulse;  // Color-coded glow
+    float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+    float hi = smoothstep(0.42, 0.9, luma); // tint highlights more than shadows
 
-    fragColor = vec4(clamp(rgb, 0.0, 1.5), col.a * alpha);
+    // Moderate bloom and restrained tinting.
+    rgb *= 1.0 + pulse * 0.18;
+    rgb = mix(rgb, rgb * (0.92 + 0.08 * tint), clamp(pulse * 0.28 * hi, 0.0, 0.25));
+    rgb += vec3(0.04) * pulse * hi;
+
+    fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
 """
 
