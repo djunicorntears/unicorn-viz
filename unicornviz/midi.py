@@ -81,6 +81,9 @@ class MidiManager:
     def start(self) -> None:
         if not _RTMIDI_OK:
             return
+        if not self._device_hint:
+            log.info("MIDI: disabled (device hint is empty)")
+            return
         try:
             midi_in = rtmidi.MidiIn()
             ports = midi_in.get_ports()
