@@ -61,8 +61,11 @@ void main() {
         0.75 + 0.25 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
-    rgb *= 1.0 + pulse * 0.18;
-    rgb = mix(rgb, rgb * tint, clamp(pulse * 0.45, 0.0, 0.7));
+    // Bass-driven bloom and color modulation
+    rgb *= 1.0 + pulse * 0.35;
+    rgb = mix(rgb, rgb * tint, clamp(pulse * 0.65, 0.0, 0.8));
+    // Ensure visible saturation boost
+    rgb += vec3(0.08) * pulse;
 
     fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
@@ -172,9 +175,12 @@ class Splash:
             if self._bass_supplier is not None:
                 try:
                     bass = float(self._bass_supplier())
-                except Exception:
+                except Exception as e:
+                    log.debug(f"Splash bass supplier error: {e}")
                     bass = 0.0
-            self._pulse = self._pulse * 0.84 + max(0.0, bass) * 0.16
+            self._pulse = self._pulse * 0.82 + max(0.0, bass) * 0.18
+            if elapsed < 0.5 and int(elapsed * 60) % 6 == 0:  # Log first few frames
+                log.info(f"Splash frame: elapsed={elapsed:.2f}s, bass={bass:.3f}, pulse={self._pulse:.3f}")
 
             if self._done or elapsed >= self._duration:
                 # Final frame at alpha 0 so there's no pop
