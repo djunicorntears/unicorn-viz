@@ -24,7 +24,7 @@ _BLOCK_SIZE = 1024
 _CHANNELS = 2
 
 
-def _candidate_monitor_devices(hint: str) -> list[int | None]:
+def _candidate_monitor_devices(hint: str, try_alsa: bool = True) -> list[int | None]:
     """Return ordered candidate input devices for auto-fallback probing."""
     if not _SD_AVAILABLE:
         return [None]
@@ -43,6 +43,17 @@ def _candidate_monitor_devices(hint: str) -> list[int | None]:
 
     app_keywords = ('spotify', 'firefox', 'chrome', 'chromium', 'brave', 'vlc', 'mpv')
     ranked: list[tuple[int, int]] = []
+    
+    # High priority: ALSA loopback if enabled (stable fallback for OBS recording)
+    if try_alsa:
+        for i, d in enumerate(devices):
+            if d.get('max_input_channels', 0) < 1:
+                continue
+            name = d['name'].lower()
+            if 'loopback' in name:
+                ranked.append((0, i))
+    
+    # Rank remaining devices
     for i, d in enumerate(devices):
         if d.get('max_input_channels', 0) < 1:
             continue
@@ -50,13 +61,13 @@ def _candidate_monitor_devices(hint: str) -> list[int | None]:
         rank = 99
         # Prioritize actual app audio sources (Spotify, web browsers, etc.)
         if any(key in name for key in app_keywords):
-            rank = 0
+            rank = 1 if try_alsa else 0
         # System default fallback
         elif 'pipewire' in name or 'default' in name:
-            rank = 1
+            rank = 2 if try_alsa else 1
         # Generic monitors (but not OBS)
         elif 'monitor' in name and 'obs' not in name:
-            rank = 2
+            rank = 3 if try_alsa else 2
         # Explicit deprecation: OBS monitor should NEVER be auto-selected
         elif 'obs' in name:
             rank = 99
@@ -122,10 +133,18 @@ class AudioCapture:
     Call `get_block()` to retrieve the latest PCM block (or None if silent).
     """
 
-    def __init__(self, device_hint: str = "", buffer_seconds: float = 2.0) -> None:
+    def __init__(
+        self,
+        device_hint: str = "",
+        buffer_seconds: float = 2.0,
+        latency: str = "high",
+        try_alsa_loopback: bool = True,
+    ) -> None:
         self._device_hint = device_hint
         self._buffer_seconds = buffer_seconds
-        self._sample_rate = _SAMPLE_RATE   # updated in start() once device is known
+        self._latency = latency
+        self._try_alsa_loopback = try_alsa_loopback
+        self._sample_rate = _SAMPLE_RATE
         self._channels = _CHANNELS
         self._buf: deque[np.ndarray] = deque(
             maxlen=int(_SAMPLE_RATE * buffer_seconds / _BLOCK_SIZE) + 1
@@ -167,7 +186,7 @@ class AudioCapture:
             blocksize=_BLOCK_SIZE,
             dtype=np.float32,
             callback=self._callback,
-            latency='low',
+            latency=self._latency,
         )
         self._stream.start()
         self._active = True
@@ -184,7 +203,9 @@ class AudioCapture:
             return
 
         try:
-            self._candidate_devices = _candidate_monitor_devices(self._device_hint)
+            self._candidate_devices = _candidate_monitor_devices(
+                self._device_hint, try_alsa=self._try_alsa_loopback
+            )
             self._candidate_index = 0
             self._open_stream(self._candidate_devices[self._candidate_index])
         except Exception as exc:

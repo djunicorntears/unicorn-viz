@@ -16,14 +16,20 @@ transition = "scanwipe"
 transition_duration = 1.0
 
 [audio]
-# Leave empty for auto-detect (prefers OBS monitor when OBS is running,
-# falls back to any PipeWire monitor sink, then system default input).
+# Leave empty for auto-detect (prefers app sources like Spotify/Firefox,
+# falls back to system default input).
 device = ""
 fft_bands = 512
 buffer_seconds = 2.0
 # Master visual reactivity multiplier (1.0 = default, 2.0 = stronger response).
 # Raise this for a more aggressive, DJ-driven feel across all effects.
 reactivity = 1.5
+# Sounddevice latency: "low", "medium", or "high"
+# Use "high" for stability (especially with OBS running).
+latency = "high"
+# Try ALSA loopback (hw:Loopback) as fallback when OBS causes PipeWire issues.
+# Set to false to disable ALSA fallback.
+try_alsa_loopback = true
 
 [midi]
 # Set to name/substring of MIDI device, or leave empty to disable

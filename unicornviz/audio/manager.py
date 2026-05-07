@@ -19,6 +19,8 @@ class AudioManager:
         device_hint = cfg.get("audio", "device", default="")
         fft_bands = cfg.get("audio", "fft_bands", default=512)
         buffer_seconds = cfg.get("audio", "buffer_seconds", default=2.0)
+        latency = cfg.get("audio", "latency", default="high")
+        try_alsa_loopback = cfg.get("audio", "try_alsa_loopback", default=True)
         # "reactivity" controls how strongly visuals respond to audio features.
         # Keep legacy "gain" as fallback for backward compatibility.
         self._reactivity = float(
@@ -27,6 +29,8 @@ class AudioManager:
         self._capture = AudioCapture(
             device_hint=device_hint,
             buffer_seconds=buffer_seconds,
+            latency=latency,
+            try_alsa_loopback=try_alsa_loopback,
         )
         self._analyzer = Analyzer(fft_bands=fft_bands)
         self._last_data = AudioData()
