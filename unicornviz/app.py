@@ -46,6 +46,7 @@ class App:
         self._current_effect: BaseEffect | None = None
         self._next_effect: BaseEffect | None = None
         self._transition_t: float = 0.0
+        self._demo_timer: float = 0.0
         self._transition_duration: float = self.cfg.get(
             "demo", "transition_duration", default=1.0
         )
@@ -193,6 +194,7 @@ void main() {
             self._next_effect.destroy()
         self._next_effect = self._instantiate(cls)
         self._transition_t = 0.0
+        self._demo_timer = 0.0
 
     def show_splash(self) -> None:
         """Replay the splash screen (hotkey U)."""
@@ -302,7 +304,7 @@ void main() {
         self._running = True
 
         prev_time = time.perf_counter()
-        demo_timer = 0.0
+        self._demo_timer = 0.0
         effect_duration = self.cfg.get("demo", "effect_duration", default=20)
 
         while self._running:
@@ -337,9 +339,9 @@ void main() {
                 except Exception:
                     pass
 
-                demo_timer += dt
-                if demo_timer >= effect_duration and allow_advance:
-                    demo_timer = 0.0
+                self._demo_timer += dt
+                if self._demo_timer >= effect_duration and allow_advance:
+                    self._demo_timer = 0.0
                     next_cls = playlist.advance()
                     self._switch_effect(next_cls)
 

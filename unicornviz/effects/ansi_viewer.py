@@ -116,6 +116,7 @@ class ANSIViewer(BaseEffect):
             "glow":      0.6,   # phosphor glow intensity
             "crt":       0.7,   # CRT barrel distortion
             "slide_time": 15.0, # seconds per file
+            "cycle_files": 0.0, # 0 = stay on current file, 1 = cycle files
         }
 
         self._prog = self._make_program(_VERT, _FRAG)
@@ -187,12 +188,13 @@ class ANSIViewer(BaseEffect):
         self._scroll += dt * 0.012 * self.parameters["speed"]
         self._scroll %= 1.0
 
-        # Advance to next file
-        self._slide_timer += dt
-        if self._slide_timer >= self.parameters["slide_time"] and self._files:
-            self._slide_timer = 0.0
-            self._file_idx = (self._file_idx + 1) % len(self._files)
-            self._load_current()
+        # Optional internal file cycling (disabled by default).
+        if float(self.parameters.get("cycle_files", 0.0)) > 0.5:
+            self._slide_timer += dt
+            if self._slide_timer >= self.parameters["slide_time"] and self._files:
+                self._slide_timer = 0.0
+                self._file_idx = (self._file_idx + 1) % len(self._files)
+                self._load_current()
 
     def render(self) -> None:
         if self._ansi_tex is None:

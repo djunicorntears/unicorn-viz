@@ -63,7 +63,7 @@ void main() {
     vec3 rgb = col.rgb;
     // Aggressive bloom and saturation
     rgb *= 1.0 + pulse * 0.72;
-    rgb = mix(rgb, rgb * tint * 1.2, clamp(pulse * 0.85, 0.0, 1.0));
+    rgb = mix(rgb, rgb * tint * 1.15, clamp(pulse * 0.68, 0.0, 0.9));
     rgb += vec3(0.18) * pulse;  // Bright ambient boost
     rgb += tint * 0.22 * pulse;  // Color-coded glow
 
