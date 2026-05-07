@@ -39,6 +39,7 @@ class AudioManager:
 
     def get_audio_data(self) -> AudioData:
         """Called every frame from the main loop."""
+        self._capture.maybe_fallback()
         block = self._capture.get_block()
         data = self._analyzer.process(block)
         if self._reactivity != 1.0:

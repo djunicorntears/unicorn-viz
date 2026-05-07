@@ -38,13 +38,20 @@ class Analyzer:
         n = len(pcm)
         window = np.hanning(n).astype(np.float32)
         windowed = pcm[:n] * window
+        rms = float(np.sqrt(np.mean(windowed * windowed)))
         spectrum = np.abs(np.fft.rfft(windowed, n=self._bands * 2))
         spectrum = spectrum[: self._bands].astype(np.float32)
 
-        # Normalise
+        # Silence/noise gate + per-frame normalization.
+        # The previous implementation normalized every frame to 1.0, which made
+        # low-level noise look like strong audio and masked actual signal loss.
+        energy = np.clip((rms - 0.0015) / 0.05, 0.0, 1.0)
         max_val = spectrum.max()
-        if max_val > 1e-6:
+        if max_val > 1e-6 and energy > 1e-5:
             spectrum /= max_val
+            spectrum *= np.sqrt(energy)
+        else:
+            spectrum *= 0.0
 
         # Smoothed FFT
         self._smoothed = (
@@ -56,7 +63,10 @@ class Analyzer:
         wlen = min(512, len(pcm))
         wform = pcm[-wlen:]
         peak = np.abs(wform).max()
-        data.waveform = (wform / peak if peak > 1e-6 else wform).astype(np.float32)
+        if energy > 1e-5 and peak > 1e-6:
+            data.waveform = (wform / peak).astype(np.float32)
+        else:
+            data.waveform = np.zeros_like(wform, dtype=np.float32)
 
         # Band energy
         lo = max(1, self._bands // 32)   # bass: ~0–1 kHz

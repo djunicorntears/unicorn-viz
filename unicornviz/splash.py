@@ -76,9 +76,12 @@ void main() {
         0.75 + 0.25 * sin(hue_time + 4.18)
     );
     vec3 rgb = col.rgb;
+    float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+    float hi = smoothstep(0.55, 0.92, luma);
     rgb *= 1.0 + pulse * 0.35;
     rgb = mix(rgb, rgb * tint, clamp(pulse * 0.65, 0.0, 0.8));
     rgb += vec3(0.08) * pulse;
+    rgb += vec3(0.42, 0.38, 0.28) * hi * pulse * pulse;
 
     fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
