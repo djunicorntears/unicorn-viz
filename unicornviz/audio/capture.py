@@ -48,16 +48,18 @@ def _candidate_monitor_devices(hint: str) -> list[int | None]:
             continue
         name = d['name'].lower()
         rank = 99
-        if 'obs' in name and 'monitor' in name:
+        # Prioritize actual app audio sources (Spotify, web browsers, etc.)
+        if any(key in name for key in app_keywords):
             rank = 0
-        elif any(key in name for key in app_keywords):
-            rank = 1
-        elif 'monitor' in name:
-            rank = 2
+        # System default fallback
         elif 'pipewire' in name or 'default' in name:
-            rank = 3
-        else:
-            rank = 4
+            rank = 1
+        # Generic monitors (but not OBS)
+        elif 'monitor' in name and 'obs' not in name:
+            rank = 2
+        # Explicit deprecation: OBS monitor should NEVER be auto-selected
+        elif 'obs' in name:
+            rank = 99
         ranked.append((rank, i))
 
     ranked.sort()
