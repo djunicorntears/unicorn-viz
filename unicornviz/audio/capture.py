@@ -207,12 +207,12 @@ class AudioCapture:
         if device is not None:
             dev_name = sd.query_devices(device)['name']
             if 'loopback' in dev_name.lower():
-                log.info("Audio capture: using ALSA loopback device %d (%s)", device, dev_name)
+                log.info("Audio capture: using ALSA loopback device %d (%s) at %d Hz", device, dev_name, native_rate)
             else:
-                log.info('Audio capture: device %d (%s)', device, dev_name)
+                log.info('Audio capture: device %d (%s) at %d Hz (native rate)', device, dev_name, native_rate)
         else:
-            log.info('Audio capture: using default input device')
-        log.info('Audio capture started at %d Hz, %d ch, latency=%s', native_rate, native_channels, self._latency)
+            log.info('Audio capture: using default input device at %d Hz', native_rate)
+        log.info('Audio capture started: %d Hz, %d ch, latency=%s', native_rate, native_channels, self._latency)
 
     def start(self) -> None:
         if not _SD_AVAILABLE:
