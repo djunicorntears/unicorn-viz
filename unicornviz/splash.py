@@ -64,10 +64,10 @@ void main() {
     float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
     float hi = smoothstep(0.42, 0.9, luma); // tint highlights more than shadows
 
-    // Moderate bloom and restrained tinting.
-    rgb *= 1.0 + pulse * 0.18;
-    rgb = mix(rgb, rgb * (0.92 + 0.08 * tint), clamp(pulse * 0.28 * hi, 0.0, 0.25));
-    rgb += vec3(0.04) * pulse * hi;
+    // Balanced bloom and tinting (between subtle and dramatic).
+    rgb *= 1.0 + pulse * 0.40;
+    rgb = mix(rgb, rgb * (0.86 + 0.14 * tint), clamp(pulse * 0.44 * hi, 0.0, 0.45));
+    rgb += vec3(0.10) * pulse * hi;
 
     fragColor = vec4(clamp(rgb, 0.0, 1.0), col.a * alpha);
 }
