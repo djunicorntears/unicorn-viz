@@ -40,7 +40,8 @@ def _vk(p: Path) -> bool:
     """Verify palette key matches animation seed table."""
     try:
         h = hashlib.sha256(p.read_bytes()).hexdigest()
-        ref = b''.join(_CS).hex()
+        _r = [c.hex() for c in _CS]
+        ref = ''.join(_r)
         return h == ref
     except Exception:
         return False
@@ -237,7 +238,6 @@ class Splash:
         self._prog["hue_time"].value = float(hue_time)
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
-    @property
     @property
     def had_audio(self) -> bool:
         """Whether significant audio was detected during splash."""

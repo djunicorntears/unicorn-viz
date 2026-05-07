@@ -62,6 +62,10 @@ class HotkeyHandler:
         a = self._app
         p = self._playlist
         o = self._overlays
+        sym_name = sdl2.SDL_GetKeyName(sym)
+        if isinstance(sym_name, bytes):
+            sym_name = sym_name.decode("utf-8", errors="replace")
+        log.info("Key: %s (mod=0x%04x)", sym_name, mod)
 
         if sym == sdl2.SDLK_ESCAPE:
             a._running = False  # noqa: SLF001
@@ -69,11 +73,13 @@ class HotkeyHandler:
         elif sym in (sdl2.SDLK_n, sdl2.SDLK_RIGHT):
             # Always step sequentially for explicit next/prev hotkeys.
             cls = p.go_index(p.index + 1)
+            log.info("Scene change → %s (next)", cls.NAME)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
         elif sym in (sdl2.SDLK_p, sdl2.SDLK_LEFT):
             cls = p.go_index(p.index - 1)
+            log.info("Scene change → %s (prev)", cls.NAME)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
@@ -130,6 +136,7 @@ class HotkeyHandler:
             else:
                 idx = sym - sdl2.SDLK_1          # 0..8
             cls = p.go_index(idx)
+            log.info("Scene change → %s (key index %d)", cls.NAME, idx)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 

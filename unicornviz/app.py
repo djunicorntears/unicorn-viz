@@ -343,6 +343,7 @@ void main() {
                 if self._demo_timer >= effect_duration and allow_advance:
                     self._demo_timer = 0.0
                     next_cls = playlist.advance()
+                    log.info("Auto-advance → %s", next_cls.NAME)
                     self._switch_effect(next_cls)
 
             # Update audio
