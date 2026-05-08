@@ -40,6 +40,7 @@ class App:
         self._running = False
         self._paused = False
         self._auto_advance = True  # Toggle with hotkey T
+        self._ctrl_held = False
         self._ctx: moderngl.Context | None = None
         self._window = None
         self._gl_context = None
@@ -115,6 +116,7 @@ class App:
                 f"SDL_GL_CreateContext failed: {sdl2.SDL_GetError().decode()}"
             )
         sdl2.SDL_GL_SetSwapInterval(1)  # vsync
+        self._set_cursor_visible(False)
 
         # After fullscreen is applied the OS may give us a different size.
         # Query the actual drawable size and update width/height.
@@ -221,6 +223,18 @@ void main() {
         tex.filter = moderngl.LINEAR, moderngl.LINEAR
         depth = self._ctx.depth_renderbuffer((self._width, self._height))
         return self._ctx.framebuffer(color_attachments=[tex], depth_attachment=depth)
+
+    def _set_cursor_visible(self, visible: bool) -> None:
+        """Show cursor only when Ctrl is held; otherwise keep it hidden."""
+        try:
+            sdl2.SDL_ShowCursor(sdl2.SDL_ENABLE if visible else sdl2.SDL_DISABLE)
+        except Exception:
+            pass
+
+    def _update_ctrl_state(self, sym: int, is_keydown: bool) -> None:
+        if sym in (sdl2.SDLK_LCTRL, sdl2.SDLK_RCTRL):
+            self._ctrl_held = is_keydown
+            self._set_cursor_visible(self._ctrl_held)
 
     # ------------------------------------------------------------------ #
     # Effect management                                                    #
@@ -393,7 +407,10 @@ void main() {
                 if event.type == sdl2.SDL_QUIT:
                     self._running = False
                 elif event.type == sdl2.SDL_KEYDOWN:
+                    self._update_ctrl_state(event.key.keysym.sym, True)
                     hotkeys.handle(event.key.keysym.sym, event.key.keysym.mod)
+                elif event.type == sdl2.SDL_KEYUP:
+                    self._update_ctrl_state(event.key.keysym.sym, False)
                 elif event.type == sdl2.SDL_WINDOWEVENT:
                     if event.window.event == sdl2.SDL_WINDOWEVENT_RESIZED:
                         self._on_resize(
