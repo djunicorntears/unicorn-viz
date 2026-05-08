@@ -298,6 +298,7 @@ class Overlays:
         self._show_help = False
         self._show_audio = False
         self._show_midi = False
+        self._help_timer: float = 0.0
         self._flash_text: str = ""
         self._flash_timer: float = 0.0
         self._name_text: str = ""
@@ -418,6 +419,12 @@ void main() {
 
     def render(self, dt: float) -> None:
         """Call each frame after the main effect renders."""
+        if self._show_help:
+            self._help_timer -= dt
+            if self._help_timer <= 0.0:
+                self._show_help = False
+                self._help_timer = 0.0
+
         if self._flash_timer > 0.0:
             self._flash_timer -= dt
             alpha = min(1.0, self._flash_timer * 2.0)
@@ -526,6 +533,7 @@ void main() {
 
     def toggle_help(self) -> None:
         self._show_help = not self._show_help
+        self._help_timer = 30.0 if self._show_help else 0.0
 
     def toggle_audio_selector(self) -> None:
         self._show_audio = not self._show_audio
