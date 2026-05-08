@@ -159,11 +159,11 @@ class Cube3D(BaseEffect):
         )
         self._vbo = vbo
 
-        self._rx   = 0.3
-        self._ry   = 0.0
+        self._rx   = float(self.rng.uniform(0.0, math.tau))
+        self._ry   = float(self.rng.uniform(0.0, math.tau))
         self._bass = 0.0
         self._beat = 0.0
-        self._hue  = 0.0
+        self._hue  = float(self.rng.uniform(0.0, 1.0))
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)

@@ -220,6 +220,9 @@ class Water(BaseEffect):
         _, prev_tex     = self._fbos[i_prev]
         _, curr_tex     = self._fbos[i_curr]
 
+        if not (hasattr(write_fbo, "use") and hasattr(prev_tex, "use") and hasattr(curr_tex, "use")):
+            return
+
         write_fbo.use()
         ctx.viewport = (0, 0, _SIM_W, _SIM_H)
         prev_tex.use(location=0)
@@ -237,13 +240,23 @@ class Water(BaseEffect):
         self._step_idx = (self._step_idx + 1) % 3
 
         # Display to currently bound target (app may be rendering into transition FBO)
+        target_bound = False
         if target_fbo is not None and hasattr(target_fbo, "use"):
-            target_fbo.use()
-        elif ctx.screen is not None and hasattr(ctx.screen, "use"):
-            ctx.screen.use()
+            try:
+                target_fbo.use()
+                target_bound = True
+            except Exception:
+                target_bound = False
+        if not target_bound and ctx.screen is not None and hasattr(ctx.screen, "use"):
+            try:
+                ctx.screen.use()
+            except Exception:
+                pass
         ctx.viewport = (0, 0, self.width, self.height)
         ctx.clear(0.0, 0.0, 0.0, 1.0)
         _, disp_tex = self._fbos[(self._step_idx - 1) % 3]
+        if not hasattr(disp_tex, "use"):
+            return
         disp_tex.use(location=0)
         self._disp_prog["height"].value  = 0
         self._disp_prog["iBass"].value   = self._bass

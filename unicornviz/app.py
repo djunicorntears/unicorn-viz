@@ -46,6 +46,8 @@ class App:
         self._current_effect: BaseEffect | None = None
         self._next_effect: BaseEffect | None = None
         self._transition_t: float = 0.0
+        self._transition_kind: str = "crossfade"
+        self._rng = np.random.default_rng()
         self._demo_timer: float = 0.0
         self._transition_duration: float = self.cfg.get(
             "demo", "transition_duration", default=1.0
@@ -134,7 +136,7 @@ class App:
         self._build_blend_pipeline()
 
     def _build_blend_pipeline(self) -> None:
-        """FBO-pair + crossfade shader used for transitions."""
+        """FBO-pair + transition shader used for cross-effect blending."""
         self._fbo_a = self._make_fbo()
         self._fbo_b = self._make_fbo()
 
@@ -152,10 +154,56 @@ void main() {
 uniform sampler2D tex_a;
 uniform sampler2D tex_b;
 uniform float t;
+uniform int mode;
 in vec2 v_uv;
 out vec4 fragColor;
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
 void main() {
-    fragColor = mix(texture(tex_a, v_uv), texture(tex_b, v_uv), t);
+    vec4 a = texture(tex_a, v_uv);
+    vec4 b = texture(tex_b, v_uv);
+
+    if (mode == 0) {
+        // linear crossfade
+        fragColor = mix(a, b, t);
+        return;
+    }
+    if (mode == 1) {
+        // smoothstep crossfade
+        float s = smoothstep(0.0, 1.0, t);
+        fragColor = mix(a, b, s);
+        return;
+    }
+    if (mode == 2) {
+        // horizontal wipe
+        float edge = smoothstep(t - 0.02, t + 0.02, v_uv.x);
+        fragColor = mix(a, b, edge);
+        return;
+    }
+    if (mode == 3) {
+        // vertical wipe
+        float edge = smoothstep(t - 0.02, t + 0.02, v_uv.y);
+        fragColor = mix(a, b, edge);
+        return;
+    }
+    if (mode == 4) {
+        // dissolve noise threshold
+        float n = hash(floor(v_uv * vec2(1920.0, 1080.0)));
+        float edge = smoothstep(t - 0.04, t + 0.04, n);
+        fragColor = mix(a, b, edge);
+        return;
+    }
+
+    // zoom blend
+    vec2 c = vec2(0.5);
+    vec2 uv_a = c + (v_uv - c) * (1.0 + 0.12 * t);
+    vec2 uv_b = c + (v_uv - c) * (1.12 - 0.12 * t);
+    vec4 az = texture(tex_a, clamp(uv_a, 0.0, 1.0));
+    vec4 bz = texture(tex_b, clamp(uv_b, 0.0, 1.0));
+    fragColor = mix(az, bz, t);
 }
 """
         self._blend_prog = self._ctx.program(
@@ -193,6 +241,28 @@ void main() {
         if self._next_effect is not None:
             self._next_effect.destroy()
         self._next_effect = self._instantiate(cls)
+
+        requested = str(self.cfg.get("demo", "transition", default="crossfade")).lower()
+        transition_types = [
+            "crossfade",
+            "smoothfade",
+            "scanwipe_x",
+            "scanwipe_y",
+            "dissolve",
+            "zoomblend",
+        ]
+        if requested in ("random", "shuffle"):
+            self._transition_kind = str(self._rng.choice(transition_types))
+        elif requested == "scanwipe":
+            self._transition_kind = "scanwipe_y"
+        elif requested == "cut":
+            self._transition_kind = "crossfade"
+        elif requested in transition_types:
+            self._transition_kind = requested
+        else:
+            self._transition_kind = "crossfade"
+        log.info("Transition → %s", self._transition_kind)
+
         self._transition_t = 0.0
         self._demo_timer = 0.0
 
@@ -384,7 +454,6 @@ void main() {
 
     def _render(self) -> None:
         ctx = self._ctx
-        transition = self.cfg.get("demo", "transition", default="crossfade")
 
         if self._next_effect is None:
             # No transition — render current directly to screen
@@ -399,7 +468,7 @@ void main() {
                 (1.0 / self._transition_duration)
                 * (1.0 / TARGET_FPS)
             )
-            if self._transition_t >= 1.0 or transition == "cut":
+            if self._transition_t >= 1.0:
                 # Finish transition
                 if self._current_effect:
                     self._current_effect.destroy()
@@ -410,7 +479,7 @@ void main() {
                 ctx.clear(0.0, 0.0, 0.0, 1.0)
                 if self._current_effect:
                     self._current_effect.render()
-            elif transition == "crossfade":
+            else:
                 # Render A into FBO a
                 self._fbo_a.use()
                 ctx.viewport = (0, 0, self._width, self._height)
@@ -422,7 +491,16 @@ void main() {
                 ctx.clear(0.0, 0.0, 0.0, 1.0)
                 self._next_effect.render()
 
-                # Blend to screen
+                mode_map = {
+                    "crossfade": 0,
+                    "smoothfade": 1,
+                    "scanwipe_x": 2,
+                    "scanwipe_y": 3,
+                    "dissolve": 4,
+                    "zoomblend": 5,
+                }
+
+                # Transition composite to screen
                 ctx.screen.use()
                 ctx.viewport = (0, 0, self._width, self._height)
                 ctx.clear(0.0, 0.0, 0.0, 1.0)
@@ -431,25 +509,7 @@ void main() {
                 self._blend_prog["tex_a"].value = 0
                 self._blend_prog["tex_b"].value = 1
                 self._blend_prog["t"].value = self._transition_t
-                self._blend_vao.render(moderngl.TRIANGLE_STRIP)
-            else:
-                # scanwipe — vertical wipe
-                self._fbo_a.use()
-                ctx.viewport = (0, 0, self._width, self._height)
-                ctx.clear(0.0, 0.0, 0.0, 1.0)
-                self._current_effect.render()
-                self._fbo_b.use()
-                ctx.clear(0.0, 0.0, 0.0, 1.0)
-                self._next_effect.render()
-                # Fall back to crossfade for scanwipe (full scanwipe shader later)
-                ctx.screen.use()
-                ctx.viewport = (0, 0, self._width, self._height)
-                ctx.clear(0.0, 0.0, 0.0, 1.0)
-                self._fbo_a.color_attachments[0].use(location=0)
-                self._fbo_b.color_attachments[0].use(location=1)
-                self._blend_prog["tex_a"].value = 0
-                self._blend_prog["tex_b"].value = 1
-                self._blend_prog["t"].value = self._transition_t
+                self._blend_prog["mode"].value = mode_map.get(self._transition_kind, 0)
                 self._blend_vao.render(moderngl.TRIANGLE_STRIP)
 
     def _on_resize(self, w: int, h: int) -> None:

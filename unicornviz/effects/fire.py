@@ -95,6 +95,7 @@ uniform sampler2D heat_tex;
 uniform float     iBass;
 uniform float     iBeat;
 uniform float     iTime;
+uniform float     iZoom;
 
 in  vec2 v_uv;
 out vec4 fragColor;
@@ -119,6 +120,11 @@ vec3 palette(float t) {
 void main() {
     // Flip Y for display (heat sims bottom ignition)
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
+    uv = (uv - vec2(0.5)) * iZoom + vec2(0.5);
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
     float heat = texture(heat_tex, uv).r;
 
     // Chromatic embellishment: slight hue warp on bass
@@ -143,7 +149,7 @@ class Fire(BaseEffect):
     TAGS = ["classic", "audio", "gpu"]
 
     def _init(self) -> None:
-        self.parameters = {"intensity": 0.82, "speed": 1.0}
+        self.parameters = {"intensity": 0.82, "speed": 1.0, "zoom": 1.6}
 
         self._sim_prog  = self._make_program(_VERT, _SIM_FRAG)
         self._disp_prog = self._make_program(_VERT, _DISPLAY_FRAG)
@@ -210,10 +216,18 @@ class Fire(BaseEffect):
 
         # --- Display ---
         # Render to whichever target app.py currently has bound (screen or transition FBO).
+        target_bound = False
         if target_fbo is not None and hasattr(target_fbo, "use"):
-            target_fbo.use()
-        elif ctx.screen is not None and hasattr(ctx.screen, "use"):
-            ctx.screen.use()
+            try:
+                target_fbo.use()
+                target_bound = True
+            except Exception:
+                target_bound = False
+        if not target_bound and ctx.screen is not None and hasattr(ctx.screen, "use"):
+            try:
+                ctx.screen.use()
+            except Exception:
+                pass
         ctx.viewport = (0, 0, self.width, self.height)
         # The texture we just wrote into is the current heat field
         if self._ping:
@@ -224,6 +238,7 @@ class Fire(BaseEffect):
         self._disp_prog["iBass"].value    = self._bass
         self._disp_prog["iBeat"].value    = self._beat
         self._disp_prog["iTime"].value    = self.time
+        self._disp_prog["iZoom"].value    = float(self.parameters["zoom"])
         self._disp_vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:

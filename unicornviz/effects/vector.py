@@ -160,9 +160,12 @@ class Vector(BaseEffect):
         self._bass = 0.0
         self._beat = 0.0
         self._mid  = 0.0
-        self._shape_idx = 0
-        self._rx = self._ry = self._rz = 0.0
-        self._rx2 = self._ry2 = 0.0   # secondary shape angles
+        self._shape_idx = int(self.rng.integers(0, len(_SHAPES)))
+        self._rx = float(self.rng.uniform(0.0, math.tau))
+        self._ry = float(self.rng.uniform(0.0, math.tau))
+        self._rz = float(self.rng.uniform(0.0, math.tau))
+        self._rx2 = float(self.rng.uniform(0.0, math.tau))
+        self._ry2 = float(self.rng.uniform(0.0, math.tau))
 
         # Build one VAO per shape; they share the same program
         self._vaos: list[moderngl.VertexArray] = []

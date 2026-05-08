@@ -8,11 +8,12 @@ title = "Unicorn Viz"
 
 [demo]
 # "sequential" or "random"
-mode = "sequential"
+mode = "random"
 # seconds per effect in auto-playlist mode
-effect_duration = 15
-# transition type: "cut", "crossfade", "scanwipe"
-transition = "scanwipe"
+effect_duration = 180
+# transition type: "crossfade", "smoothfade", "scanwipe_x", "scanwipe_y",
+# "dissolve", "zoomblend", or "shuffle" to randomize each transition.
+transition = "shuffle"
 transition_duration = 1.0
 
 [audio]
@@ -23,10 +24,10 @@ fft_bands = 512
 buffer_seconds = 2.0
 # Master visual reactivity multiplier (1.0 = default, 2.0 = stronger response).
 # Raise this for a more aggressive, DJ-driven feel across all effects.
-reactivity = 1.5
+reactivity = 5.0
 # Sounddevice latency: "low", "medium", or "high"
 # Use "high" for stability (especially with OBS running).
-latency = "high"
+latency = "low"
 # Try ALSA loopback (hw:Loopback) as fallback when OBS causes PipeWire issues.
 # Set to false to disable ALSA fallback.
 try_alsa_loopback = false
@@ -78,7 +79,7 @@ ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD ar
 # Path to splash screen image (PNG). Set to empty string to disable.
 image    = "images/unicorn-viz-01.png"
 # Duration when audio is present (seconds) — animated with color pulse/bloom
-duration_audio = 10.0
+duration_audio = 7.0
 # Duration when no audio detected (seconds) — static display
 duration_silent = 4.0
 
