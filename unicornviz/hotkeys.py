@@ -71,15 +71,22 @@ class HotkeyHandler:
             a._running = False  # noqa: SLF001
 
         elif sym in (sdl2.SDLK_n, sdl2.SDLK_RIGHT):
-            # Always step sequentially for explicit next/prev hotkeys.
-            cls = p.go_index(p.index + 1)
-            log.info("Scene change → %s (next)", cls.NAME)
+            if p.mode == "random":
+                cls = p.advance()
+                log.info("Scene change → %s (random next)", cls.NAME)
+            else:
+                cls = p.go_index(p.index + 1)
+                log.info("Scene change → %s (next)", cls.NAME)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
         elif sym in (sdl2.SDLK_p, sdl2.SDLK_LEFT):
-            cls = p.go_index(p.index - 1)
-            log.info("Scene change → %s (prev)", cls.NAME)
+            if p.mode == "random":
+                cls = p.advance()
+                log.info("Scene change → %s (random prev)", cls.NAME)
+            else:
+                cls = p.go_index(p.index - 1)
+                log.info("Scene change → %s (prev)", cls.NAME)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
