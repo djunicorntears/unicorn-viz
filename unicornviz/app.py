@@ -428,13 +428,18 @@ void main() {
                 if self._next_effect:
                     self._next_effect.update(dt, self._audio)
 
-            # If current effect is ANSIViewer, sync its art title to the overlay
+            # Keep persistent name overlay in sync with the active effect.
+            # ANSIViewer shows the current art title; all other effects show NAME.
             try:
-                from unicornviz.effects.ansi_viewer import ANSIViewer
-                if isinstance(self._current_effect, ANSIViewer):
-                    overlays._name_text = self._current_effect.current_title
+                if self._current_effect is not None:
+                    from unicornviz.effects.ansi_viewer import ANSIViewer
+                    if isinstance(self._current_effect, ANSIViewer):
+                        overlays._name_text = self._current_effect.current_title
+                    else:
+                        overlays._name_text = self._current_effect.NAME
             except Exception:
-                pass
+                if self._current_effect is not None:
+                    overlays._name_text = self._current_effect.NAME
 
             # Render
             self._render()

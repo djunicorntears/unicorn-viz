@@ -1,5 +1,6 @@
 *.swp
 notes.txt
+plan.md
 screenshots/
 logs/
 __pycache__/
