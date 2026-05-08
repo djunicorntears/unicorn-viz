@@ -49,12 +49,6 @@ ansi_own_dir = "assets/ansi"
 # period (.) hotkey
 ansi_acid_dir = "assets/ansi/acid"
 
-[splash]
-# set image to empty string to disable splash
-image = "images/unicorn-viz-01.png"
-duration_audio = 7.0
-duration_silent = 4.0
-
 [playlist]
 # class name or display name; empty = first discovered effect
 start_effect = "Audio Spectrum"
