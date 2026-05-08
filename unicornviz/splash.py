@@ -199,8 +199,8 @@ class Splash:
                 except Exception as e:
                     log.debug(f"Splash bass supplier error: {e}")
                     bass = 0.0
-            # Less smoothing (0.65) for faster BPM response; decay when silent
-            self._pulse = self._pulse * 0.65 + max(0.0, bass) * 0.35
+            # Very low smoothing (0.25) for punchy BPM response.
+            self._pulse = self._pulse * 0.25 + max(0.0, bass) * 0.75
             if elapsed < 0.5 and int(elapsed * 60) % 6 == 0:  # Log first few frames
                 log.info(f"Splash frame: elapsed={elapsed:.2f}s, bass={bass:.3f}, pulse={self._pulse:.3f}")
 

@@ -24,7 +24,7 @@ fft_bands = 512
 buffer_seconds = 2.0
 # Master visual reactivity multiplier (1.0 = default, 2.0 = stronger response).
 # Raise this for a more aggressive, DJ-driven feel across all effects.
-reactivity = 5.0
+reactivity = 3.0
 # Sounddevice latency: "low", "medium", or "high"
 # Use "high" for stability (especially with OBS running).
 latency = "low"
