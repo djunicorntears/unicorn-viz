@@ -57,6 +57,12 @@
 
 ## Phase 4 — Product and Plugin Architecture
 
+- `[todo]` Review and enhance each existing built-in effect before adding any new effects.
+  Notes:
+  - performance pass (GPU cost, allocations, frame budget)
+  - consistency pass (parameters, naming, audio reactivity behavior)
+  - visual polish pass (startup variance, transitions, readability)
+  - documentation pass (effect-level options and expected behavior)
 - `[decision]` Design external plugin loading for paid effect packs.
   Open questions:
   - local drop-in plugin directory vs hosted/cloud delivery
