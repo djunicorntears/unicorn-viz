@@ -21,7 +21,7 @@ All settings live in `config.toml` in the project root.
 |----------------------|--------|----------------|-----------------------------------------------------|
 | `mode`               | str    | `"sequential"` | Playlist mode: `"sequential"` or `"random"`         |
 | `effect_duration`    | int    | `20`           | Seconds before auto-advancing to the next effect    |
-| `transition`         | str    | `"crossfade"`  | Transition type: `"cut"`, `"crossfade"`, `"scanwipe"` |
+| `transition`         | str    | `"crossfade"`  | Transition type: `"crossfade"`, `"smoothfade"`, `"scanwipe_x"`, `"scanwipe_y"`, `"dissolve"`, `"zoomblend"`, `"shuffle"` |
 | `transition_duration`| float  | `1.0`          | Transition length in seconds                        |
 
 ---
@@ -33,6 +33,9 @@ All settings live in `config.toml` in the project root.
 | `device`         | str    | `""`    | Device name substring (empty = auto-detect PipeWire monitor) |
 | `fft_bands`      | int    | `512`   | Number of FFT frequency bins                                 |
 | `buffer_seconds` | float  | `2.0`   | Audio ring buffer length in seconds                          |
+| `reactivity`     | float  | `1.5`   | Master visual response multiplier                            |
+| `latency`        | str    | `"high"` | Audio stream latency: `"low"`, `"medium"`, `"high"`      |
+| `try_alsa_loopback` | bool | `false` | Try ALSA loopback devices before app/default sources        |
 
 ---
 
@@ -40,7 +43,7 @@ All settings live in `config.toml` in the project root.
 
 | Key      | Type | Default | Description                                            |
 |----------|------|---------|--------------------------------------------------------|
-| `device` | str  | `""`    | MIDI port name substring (empty = first available port)|
+| `device` | str  | `""`    | MIDI port name substring (empty = MIDI disabled)      |
 
 ---
 
@@ -98,3 +101,12 @@ Example — only rotate through three effects:
 [playlist]
 sequence = ["Plasma", "Fire", "Starfield"]
 ```
+
+---
+
+## `[logging]`
+
+| Key        | Type | Default  | Description                              |
+|------------|------|----------|------------------------------------------|
+| `level`    | str  | `"INFO"` | Log verbosity                            |
+| `directory`| str  | `"logs"` | Directory for timestamped run log files  |

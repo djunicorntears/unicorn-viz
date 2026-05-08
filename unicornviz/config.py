@@ -40,6 +40,8 @@ _DEFAULTS: dict[str, Any] = {
         "fft_bands": 512,
         "buffer_seconds": 2.0,
         "reactivity": 1.5,
+        "latency": "high",
+        "try_alsa_loopback": False,
     },
     "midi": {
         "device": "",
@@ -52,11 +54,16 @@ _DEFAULTS: dict[str, Any] = {
     "effects": {},
     "splash": {
         "image": "images/unicorn-viz-01.png",
-        "duration": 4.0,
+        "duration_audio": 7.0,
+        "duration_silent": 4.0,
     },
     "playlist": {
         "sequence": [],
         "start_effect": "Audio Spectrum",
+    },
+    "logging": {
+        "level": "INFO",
+        "directory": "logs",
     },
 }
 
@@ -72,13 +79,15 @@ def _deep_merge(base: dict, override: dict) -> dict:
 
 
 class Config:
-    def __init__(self, path: str | Path = "config.toml") -> None:
+    def __init__(self, path: str | Path = "config.toml", overrides: dict[str, Any] | None = None) -> None:
         self._data = dict(_DEFAULTS)
         p = Path(path)
         if p.exists():
             with p.open("rb") as f:
                 user = tomllib.load(f)
             self._data = _deep_merge(self._data, user)
+        if overrides:
+            self._data = _deep_merge(self._data, overrides)
 
     def __getitem__(self, key: str) -> Any:
         return self._data[key]

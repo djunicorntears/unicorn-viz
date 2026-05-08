@@ -35,8 +35,8 @@ FRAME_TIME = 1.0 / TARGET_FPS
 
 
 class App:
-    def __init__(self, config_path: str = "config.toml") -> None:
-        self.cfg = Config(config_path)
+    def __init__(self, config_path: str | Config = "config.toml") -> None:
+        self.cfg = config_path if isinstance(config_path, Config) else Config(config_path)
         self._running = False
         self._paused = False
         self._auto_advance = True  # Toggle with hotkey T
@@ -295,10 +295,6 @@ void main() {
     # ------------------------------------------------------------------ #
 
     def run(self) -> None:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(levelname)s [%(name)s] %(message)s",
-        )
         self._init_sdl()
         self._init_moderngl()
 

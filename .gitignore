@@ -1,5 +1,7 @@
 *.swp
 notes.txt
-plan.md
 screenshots/
 logs/
+__pycache__/
+*.pyc
+.venv/

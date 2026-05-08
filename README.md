@@ -25,6 +25,9 @@ python3.11 -m venv .venv
 
 # Run
 ./run.sh
+
+# CLI help
+.venv/bin/python -m unicornviz --help
 ```
 
 ### Install on Ubuntu 22.04+
@@ -45,6 +48,23 @@ python3.11 -m venv .venv
 
 # Run
 ./run.sh
+
+# CLI help
+.venv/bin/python -m unicornviz --help
+```
+
+### Common CLI Overrides
+
+```bash
+.venv/bin/python -m unicornviz \
+  --windowed \
+  --width 2560 --height 1440 \
+  --mode random \
+  --transition shuffle \
+  --effect-duration 30 \
+  --reactivity 2.5 \
+  --audio-device spotify \
+  --log-level DEBUG
 ```
 
 ---
@@ -156,6 +176,16 @@ reactivity = 1.0            # 0.5x to 5.0x audio sensitivity
 ```
 
 See [Configuration Reference](docs/configuration.md) for all options.
+
+## Logging
+
+Runtime logs are written to `logs/` automatically, with one timestamped file per run.
+
+You can control verbosity from config or CLI:
+
+```bash
+.venv/bin/python -m unicornviz --log-level DEBUG
+```
 
 ---
 

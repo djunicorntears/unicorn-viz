@@ -73,7 +73,23 @@ Pass a custom config file:
 python -m unicornviz --config /path/to/myconfig.toml
 ```
 
-*(Not yet wired — edit `config.toml` in the project root for now.)*
+Common runtime overrides:
+
+```bash
+python -m unicornviz \
+	--mode random \
+	--transition shuffle \
+	--effect-duration 45 \
+	--reactivity 2.0 \
+	--audio-device spotify \
+	--log-level DEBUG
+```
+
+Show all available options:
+
+```bash
+python -m unicornviz --help
+```
 
 ---
 
@@ -93,7 +109,7 @@ python -m unicornviz --config /path/to/myconfig.toml
 | `H`            | Toggle help panel                           |
 | `A`            | Audio device selector                       |
 | `M`            | MIDI device selector                        |
-| `S`            | Save screenshot (`unicornviz_YYYYMMDD_HHMMSS.png`) |
+| `S`            | Save screenshot (`screenshots/unicornviz_YYYYMMDD_HHMMSS.png`) |
 | `Esc`          | Quit                                        |
 
 ---
@@ -152,7 +168,11 @@ fft_bands      = 512
 buffer_seconds = 2.0
 
 [midi]
-device = ""             # empty = first available port, or name substring
+device = ""             # empty = disabled, or name substring
+
+[logging]
+level = "INFO"
+directory = "logs"
 
 [ansi]
 ansi_dir = "assets/ansi/acid"   # directory (or comma-separated list) of .ans files
@@ -217,6 +237,24 @@ device = "monitor"   # or whatever substring matches your device
 ### JACK
 
 Set `SDL_AUDIODRIVER=jack` and configure JACK connections manually.
+
+## Logs
+
+Each run writes a timestamped log file under `logs/`.
+
+Set the level in `config.toml`:
+
+```toml
+[logging]
+level = "DEBUG"
+directory = "logs"
+```
+
+Or override on the command line:
+
+```bash
+python -m unicornviz --log-level DEBUG
+```
 
 ---
 
