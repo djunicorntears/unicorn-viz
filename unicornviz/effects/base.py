@@ -114,7 +114,10 @@ class BaseEffect(ABC):
         self.width = width
         self.height = height
         self.config = config
-        self.time: float = 0.0
+        self.seed: int = int(np.random.SeedSequence().entropy)
+        self.rng = np.random.default_rng(self.seed)
+        # Start each effect at a different simulation phase so runs are less predictable.
+        self.time: float = float(self.rng.uniform(0.0, 10_000.0))
         # Per-effect tweakable parameters (exposed to MIDI mapping)
         self.parameters: dict[str, float] = {}
         self._init()
