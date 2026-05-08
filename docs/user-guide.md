@@ -149,6 +149,14 @@ Any class-compliant USB MIDI device should work.
 All settings live in `config.toml` in the project root.  Unknown keys are
 ignored; missing keys use built-in defaults.
 
+For an exhaustive template with every section and all effect overrides:
+
+- `config.full.example.toml`
+
+For a per-effect parameter guide:
+
+- [Effect Settings Reference](effect-settings.md)
+
 ```toml
 [window]
 width      = 1920

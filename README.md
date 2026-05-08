@@ -106,6 +106,7 @@ See [User Guide](docs/user-guide.md#keyboard-shortcuts) for full hotkey list.
 
 - **[User Guide](docs/user-guide.md)** — Installation, running, keyboard/MIDI controls, audio setup, effects reference, troubleshooting
 - **[Configuration Reference](docs/configuration.md)** — All `config.toml` settings
+- **[Effect Settings Reference](docs/effect-settings.md)** — Every effect's tweakable config variables
 - **[Developer Guide](docs/developer-guide.md)** — Architecture, effects API, GLSL conventions, contributing
 
 ---
@@ -176,6 +177,10 @@ reactivity = 1.0            # 0.5x to 5.0x audio sensitivity
 ```
 
 See [Configuration Reference](docs/configuration.md) for all options.
+
+For a fully documented, exhaustive template including all effect overrides, see:
+
+- `config.full.example.toml`
 
 ## Logging
 

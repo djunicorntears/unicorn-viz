@@ -59,6 +59,10 @@ All settings live in `config.toml` in the project root.
 
 Per-effect parameter overrides.  Keyed by **Python class name**.
 
+For a complete list of every effect's tweakable settings and defaults, see:
+
+- [Effect Settings Reference](effect-settings.md)
+
 ```toml
 [effects.Plasma]
 speed = 2.0

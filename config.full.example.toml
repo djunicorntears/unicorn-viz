@@ -1,0 +1,138 @@
+# Unicorn Viz — Full Example Configuration
+#
+# This is an exhaustive, documented template intended as a reference.
+# For day-to-day use, keep config.toml minimal and only override what you need.
+
+[window]
+width = 1920
+height = 1080
+fullscreen = false
+title = "Unicorn Viz"
+
+[demo]
+# "sequential" or "random"
+mode = "sequential"
+# seconds per effect in auto-playlist mode
+effect_duration = 20
+# transition: crossfade, smoothfade, scanwipe_x, scanwipe_y, dissolve,
+# zoomblend, or shuffle/random (pick transition each switch)
+transition = "crossfade"
+transition_duration = 1.0
+
+[audio]
+# empty string = auto-detect best source
+device = ""
+fft_bands = 512
+buffer_seconds = 2.0
+reactivity = 1.5
+# low, medium, high
+latency = "high"
+# if true, include ALSA loopback devices in auto-fallback candidates
+try_alsa_loopback = false
+
+[midi]
+# empty string disables MIDI
+# set a substring to match/open a specific input device
+device = ""
+
+[logging]
+# DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = "INFO"
+# directory for per-run log files
+directory = "logs"
+
+[ansi]
+# default ANSI art directory
+ansi_dir = "assets/ansi"
+# comma (,) hotkey
+ansi_own_dir = "assets/ansi"
+# period (.) hotkey
+ansi_acid_dir = "assets/ansi/acid"
+
+[splash]
+# set image to empty string to disable splash
+image = "images/unicorn-viz-01.png"
+duration_audio = 7.0
+duration_silent = 4.0
+
+[playlist]
+# class name or display name; empty = first discovered effect
+start_effect = "Audio Spectrum"
+# explicit sequence; empty = all effects
+sequence = []
+
+# ------------------------------------------------------------
+# Per-effect overrides (class-name keys)
+# ------------------------------------------------------------
+[effects.AlienBiome]
+speed = 1.0
+
+[effects.ANSIViewer]
+speed = 1.0
+glow = 0.6
+crt = 0.7
+slide_time = 15.0
+cycle_files = 0.0
+
+[effects.AudioSpectrum]
+mode = 2
+glow = 1.0
+
+[effects.CopperBars]
+speed = 1.0
+
+[effects.Cosmos]
+speed = 1.0
+
+[effects.Cube3D]
+speed = 1.0
+
+[effects.Dali]
+speed = 1.0
+
+[effects.Escher]
+speed = 1.0
+
+[effects.Fire]
+intensity = 0.82
+speed = 1.0
+zoom = 1.6
+
+[effects.FractalZoom]
+speed = 1.0
+max_iter = 180
+
+[effects.Metaballs]
+speed = 1.0
+
+[effects.ParticleStorm]
+speed = 1.0
+
+[effects.Plasma]
+speed = 1.0
+palette = 0.0
+
+[effects.Raymarcher]
+speed = 1.0
+
+[effects.SineScroller]
+speed = 1.5
+amplitude = 0.18
+font_scale = 4.0
+
+[effects.Starfield]
+speed = 0.5
+warp = 0.0
+
+[effects.Tunnel]
+speed = 1.0
+
+[effects.VanGogh]
+speed = 1.0
+
+[effects.Vector]
+speed = 1.0
+
+[effects.Water]
+amplitude = 1.0
+speed = 1.0

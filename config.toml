@@ -1,92 +1,24 @@
-# Unicorn Viz — Configuration
-
 [window]
-width = 1920
-height = 1080
 fullscreen = true
-title = "Unicorn Viz"
 
 [demo]
-# "sequential" or "random"
 mode = "random"
-# seconds per effect in auto-playlist mode
 effect_duration = 180
-# transition type: "crossfade", "smoothfade", "scanwipe_x", "scanwipe_y",
-# "dissolve", "zoomblend", or "shuffle" to randomize each transition.
 transition = "shuffle"
-transition_duration = 1.0
 
 [audio]
-# Leave empty for auto-detect (prefers app sources like Spotify/Firefox,
-# falls back to system default input).
-device = ""
-fft_bands = 512
-buffer_seconds = 2.0
-# Master visual reactivity multiplier (1.0 = default, 2.0 = stronger response).
-# Raise this for a more aggressive, DJ-driven feel across all effects.
 reactivity = 3.0
-# Sounddevice latency: "low", "medium", or "high"
-# Use "high" for stability (especially with OBS running).
 latency = "low"
-# Try ALSA loopback (hw:Loopback) as fallback when OBS causes PipeWire issues.
-# Set to false to disable ALSA fallback.
 try_alsa_loopback = false
 
-[midi]
-# Set to name/substring of MIDI device, or leave empty to disable
-device = ""
-
 [ansi]
-# Default directory used by ANSI Viewer effect and the comma/period hotkeys
-ansi_dir      = "assets/ansi/acid"   # used when no hotkey override
-ansi_own_dir  = "assets/ansi"         # comma (,) hotkey → our hand-crafted art
-ansi_acid_dir = "assets/ansi/acid"    # period (.) hotkey → downloaded ACiD art
-
-[effects]
-# Override per-effect parameter defaults here, keyed by Python class name.
-#
-# Available effects (use these names in [playlist] sequence or start_effect):
-#   "Alien"         — Bioluminescent alien biome landscape
-#   "ANSI Viewer"    — scrolling CP437 art with CRT phosphor shader  (key: ,  ACiD: .)
-#   "Audio Spectrum" — FFT bars + matrix/binary DNA rain background
-#   "Cosmos"        — Nebula clouds, stars, and warp streaks
-#   "Copper Bars"    — Amiga-style oscillating colour bars
-#   "Cube 3D"        — Solid Phong-shaded neon cube with beat hue-shift
-#   "Dali"          — Surreal melting forms and mirage distortions
-#   "Escher"        — Impossible-style tiling corridor illusion
-#   "Fire"           — Cellular-automaton fire simulation
-#   "Fractal Zoom"   — Mandelbrot deep-zoom with beat-burst
-#   "Metaballs"      — GLSL SDF metaball field
-#   "Particle Storm" — 100k GPU particles, curl noise, transform-feedback
-#   "Plasma"         — Sin/cos colour-field plasma
-#   "Raymarcher"     — SDF scene: torus, spheres, morphing box
-#   "Sine Scroller"  — Multi-sine bouncing text scroller
-#   "Starfield"      — 3-D warp-speed star tunnel
-#   "Tunnel"         — Texture-mapped rotating tunnel
-#   "Van Gogh"      — Painterly swirling night-sky brushstrokes
-#   "Vector"         — Spinning wireframe polyhedra (cube/octa/icosa)
-#   "Water"         — Audio-driven GPU ripple/caustic simulation
-#
-# Example overrides:
-# [effects.Plasma]
-# speed = 2.0
-#
-# [effects.ANSIViewer]
-# slide_time = 30.0
-# glow = 0.8
+ansi_dir = "assets/ansi/acid"
+ansi_own_dir = "assets/ansi"
+ansi_acid_dir = "assets/ansi/acid"
 
 [splash]
-# Path to splash screen image (PNG). Set to empty string to disable.
-image    = "images/unicorn-viz-01.png"
-# Duration when audio is present (seconds) — animated with color pulse/bloom
 duration_audio = 7.0
-# Duration when no audio detected (seconds) — static display
 duration_silent = 4.0
 
 [playlist]
-# Start on this effect (use the display NAME from the list above).
-# Leave empty to start on the first effect in discovery order.
 start_effect = "Audio Spectrum"
-
-# If non-empty, only these effects cycle (in order). Empty = all effects.
-sequence = []

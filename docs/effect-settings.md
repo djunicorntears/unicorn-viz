@@ -1,0 +1,189 @@
+# Unicorn Viz — Effect Settings Reference
+
+This document lists every built-in effect and its tweakable values under `[effects.<ClassName>]` in `config.toml`.
+
+Notes:
+- Keys are **class names**, not display names.
+- If an effect does not list settings here, it currently has no user-tweakable parameters.
+- Global audio reactivity and playlist behavior are controlled outside `[effects]`.
+
+## Usage Pattern
+
+```toml
+[effects.ClassName]
+param_name = value
+```
+
+Example:
+
+```toml
+[effects.Fire]
+speed = 1.2
+intensity = 0.9
+zoom = 1.8
+```
+
+## Built-in Effects
+
+### `AlienBiome` (`Alien`)
+
+```toml
+[effects.AlienBiome]
+speed = 1.0
+```
+
+### `ANSIViewer` (`ANSI Viewer`)
+
+```toml
+[effects.ANSIViewer]
+speed = 1.0
+# phosphor glow intensity
+glow = 0.6
+# CRT distortion strength
+crt = 0.7
+# seconds per file when cycling is enabled
+slide_time = 15.0
+# 0.0 = stay on one file, 1.0 = cycle files
+cycle_files = 0.0
+```
+
+### `AudioSpectrum` (`Audio Spectrum`)
+
+```toml
+[effects.AudioSpectrum]
+# 0=bars, 1=wave, 2=bars+DNA rain+nebula
+mode = 2
+# reserved visual gain for bars
+glow = 1.0
+```
+
+### `CopperBars` (`Copper Bars`)
+
+```toml
+[effects.CopperBars]
+speed = 1.0
+```
+
+### `Cosmos` (`Cosmos`)
+
+```toml
+[effects.Cosmos]
+speed = 1.0
+```
+
+### `Cube3D` (`3D Cube`)
+
+```toml
+[effects.Cube3D]
+speed = 1.0
+```
+
+### `Dali` (`Dali`)
+
+```toml
+[effects.Dali]
+speed = 1.0
+```
+
+### `Escher` (`Escher`)
+
+```toml
+[effects.Escher]
+speed = 1.0
+```
+
+### `Fire` (`Fire`)
+
+```toml
+[effects.Fire]
+# source heat strength
+intensity = 0.82
+# simulation/update speed
+speed = 1.0
+# display zoom (>1.0 zooms out, <1.0 zooms in)
+zoom = 1.6
+```
+
+### `FractalZoom` (`Fractal Zoom`)
+
+```toml
+[effects.FractalZoom]
+speed = 1.0
+max_iter = 180
+```
+
+### `Metaballs` (`Metaballs`)
+
+```toml
+[effects.Metaballs]
+speed = 1.0
+```
+
+### `ParticleStorm` (`Particle Storm`)
+
+```toml
+[effects.ParticleStorm]
+speed = 1.0
+```
+
+### `Plasma` (`Plasma`)
+
+```toml
+[effects.Plasma]
+speed = 1.0
+# internal palette phase (usually auto-driven)
+palette = 0.0
+```
+
+### `Raymarcher` (`Raymarcher`)
+
+```toml
+[effects.Raymarcher]
+speed = 1.0
+```
+
+### `SineScroller` (`Sine Scroller`)
+
+```toml
+[effects.SineScroller]
+speed = 1.5
+amplitude = 0.18
+font_scale = 4.0
+```
+
+### `Starfield` (`Starfield`)
+
+```toml
+[effects.Starfield]
+speed = 0.5
+warp = 0.0
+```
+
+### `Tunnel` (`Tunnel`)
+
+```toml
+[effects.Tunnel]
+speed = 1.0
+```
+
+### `VanGogh` (`Van Gogh`)
+
+```toml
+[effects.VanGogh]
+speed = 1.0
+```
+
+### `Vector` (`Vector`)
+
+```toml
+[effects.Vector]
+speed = 1.0
+```
+
+### `Water` (`Water`)
+
+```toml
+[effects.Water]
+amplitude = 1.0
+speed = 1.0
+```
