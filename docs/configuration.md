@@ -51,7 +51,8 @@ All settings live in `config.toml` in the project root.
 
 | Key        | Type | Default            | Description                                                        |
 |------------|------|--------------------|--------------------------------------------------------------------|
-| `ansi_dir` | str  | `"assets/ansi"`    | Directory (or comma-separated list) containing `.ans` / `.ANS` files |
+| `ansi_dir_auto` | str  | `"assets/ansi"` | Directory (or comma-separated list) used by ANSI Viewer in normal playlist mode |
+| `ansi_dir` | str  | `"assets/ansi"`    | Legacy fallback key for autoplay ANSI directory (kept for backward compatibility) |
 
 ---
 

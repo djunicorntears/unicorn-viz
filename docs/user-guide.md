@@ -183,7 +183,7 @@ level = "INFO"
 directory = "logs"
 
 [ansi]
-ansi_dir = "assets/ansi/acid"   # directory (or comma-separated list) of .ans files
+ansi_dir_auto = "assets/ansi/acid"   # directory (or comma-separated list) of .ans files for normal ANSIViewer autoplay
 
 [playlist]
 sequence = []           # empty = all effects; e.g. ["Plasma", "Fire", "Tunnel"]
@@ -198,7 +198,7 @@ sequence = []           # empty = all effects; e.g. ["Plasma", "Fire", "Tunnel"]
 
 ## ANSI Art
 
-Drop any `.ANS` file into the directory configured by `ansi_dir` and it will
+Drop any `.ANS` file into the directory configured by `ansi_dir_auto` and it will
 be picked up automatically the next time the **ANSI Viewer** effect is active.
 
 The viewer rotates through all files every 15 seconds (configurable via the

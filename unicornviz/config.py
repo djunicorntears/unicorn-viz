@@ -47,6 +47,8 @@ _DEFAULTS: dict[str, Any] = {
         "device": "",
     },
     "ansi": {
+        "ansi_dir_auto": "assets/ansi",
+        # Backward compatibility: legacy key kept as fallback.
         "ansi_dir": "assets/ansi",
         "ansi_own_dir": "assets/ansi",
         "ansi_acid_dir": "assets/ansi/acid",

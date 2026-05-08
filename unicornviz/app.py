@@ -232,7 +232,10 @@ void main() {
             effect_cfg = {}
         # Inject top-level [ansi] config into ANSIViewer so it finds the art dir
         if cls.__name__ == "ANSIViewer":
-            ansi_dir = self.cfg.get("ansi", "ansi_dir", default="assets/ansi")
+            ansi_dir = self.cfg.get(
+                "ansi", "ansi_dir_auto",
+                default=self.cfg.get("ansi", "ansi_dir", default="assets/ansi"),
+            )
             effect_cfg = {"ansi_dir": str(ansi_dir), **effect_cfg}
         return cls(self._ctx, self._width, self._height, effect_cfg)
 

@@ -3,22 +3,18 @@ fullscreen = true
 
 [demo]
 mode = "random"
-effect_duration = 180
+effect_duration = 300
 transition = "shuffle"
 
 [audio]
-reactivity = 3.0
-latency = "low"
+reactivity = 2.5
+latency = "high"
 try_alsa_loopback = false
 
 [ansi]
-ansi_dir = "assets/ansi/acid"
+ansi_dir_auto = "assets/ansi/acid"
 ansi_own_dir = "assets/ansi"
 ansi_acid_dir = "assets/ansi/acid"
-
-[splash]
-duration_audio = 7.0
-duration_silent = 4.0
 
 [playlist]
 start_effect = "Audio Spectrum"

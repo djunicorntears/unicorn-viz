@@ -43,7 +43,7 @@ directory = "logs"
 
 [ansi]
 # default ANSI art directory
-ansi_dir = "assets/ansi"
+ansi_dir_auto = "assets/ansi"
 # comma (,) hotkey
 ansi_own_dir = "assets/ansi"
 # period (.) hotkey

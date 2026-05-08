@@ -41,52 +41,49 @@ def _candidate_monitor_devices(hint: str, try_alsa: bool = True) -> list[int | N
         ]
         return matches or [None]
 
-    app_keywords = ('spotify', 'firefox', 'chrome', 'chromium', 'brave', 'vlc', 'mpv')
-    ranked: list[tuple[int, int]] = []
-    
-    # High priority: ALSA loopback if enabled (stable fallback for OBS recording)
-    alsa_found = False
-    if try_alsa:
-        for i, d in enumerate(devices):
-            if d.get('max_input_channels', 0) < 1:
-                continue
-            name = d['name'].lower()
-            if 'loopback' in name:
-                ranked.append((0, i))
-                alsa_found = True
-                log.info("Audio: ALSA loopback device available: %d (%s)", i, d['name'])
-    
-    # Check for OBS
-    obs_found = False
+    # Compute one best rank per device to avoid duplicate candidates.
+    best_rank: dict[int, int] = {}
+
+    # Check for OBS (informational only)
     for i, d in enumerate(devices):
         if d.get('max_input_channels', 0) < 1:
             continue
         name = d['name'].lower()
         if 'obs' in name:
-            obs_found = True
             log.info("Audio: OBS detected: device %d (%s)", i, d['name'])
-    
-    # Rank remaining devices
+
+    # Rank candidates:
+    # 0 = ALSA loopback (optional)
+    # 1 = preferred app sources (Spotify/VLC/MPV)
+    # 2 = browser app sources (often silent unless tab is active)
+    # 3 = pipewire/default input
+    # 4 = generic non-OBS monitor
+    # 99 = OBS and unknown/undesired inputs
     for i, d in enumerate(devices):
         if d.get('max_input_channels', 0) < 1:
             continue
         name = d['name'].lower()
         rank = 99
-        # Prioritize actual app audio sources (Spotify, web browsers, etc.)
-        if any(key in name for key in app_keywords):
-            rank = 1 if try_alsa else 0
-        # System default fallback
+
+        if try_alsa and 'loopback' in name:
+            rank = 0
+            log.info("Audio: ALSA loopback device available: %d (%s)", i, d['name'])
+        elif any(key in name for key in ('spotify', 'vlc', 'mpv')):
+            rank = 1
+        elif any(key in name for key in ('firefox', 'chrome', 'chromium', 'brave')):
+            rank = 2
         elif 'pipewire' in name or 'default' in name:
-            rank = 2 if try_alsa else 1
-        # Generic monitors (but not OBS)
+            rank = 3
         elif 'monitor' in name and 'obs' not in name:
-            rank = 3 if try_alsa else 2
-        # Explicit deprecation: OBS monitor should NEVER be auto-selected
+            rank = 4
         elif 'obs' in name:
             rank = 99
-        ranked.append((rank, i))
 
-    ranked.sort()
+        prev = best_rank.get(i)
+        if prev is None or rank < prev:
+            best_rank[i] = rank
+
+    ranked = sorted((rank, idx) for idx, rank in best_rank.items())
     candidates = [i for _, i in ranked]
     candidates.append(None)
     return candidates
