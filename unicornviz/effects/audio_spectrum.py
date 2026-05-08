@@ -67,6 +67,70 @@ void main() {
 }
 """
 
+_FRAG_NEBULA = """
+#version 330
+uniform float iTime;
+uniform float iBass;
+uniform float iMid;
+uniform vec2  iResolution;
+
+in  vec2 v_uv;
+out vec4 fragColor;
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = hash(i + vec2(0.0, 0.0));
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p) {
+    float v = 0.0;
+    float a = 0.55;
+    for (int i = 0; i < 5; i++) {
+        v += a * noise(p);
+        p = p * 2.02 + vec2(0.17, -0.11);
+        a *= 0.5;
+    }
+    return v;
+}
+
+void main() {
+    vec2 uv = v_uv * 2.0 - 1.0;
+    uv.x *= iResolution.x / max(iResolution.y, 1.0);
+
+    float t = iTime * (0.12 + iBass * 0.2);
+    vec2 p = uv;
+    p += 0.12 * vec2(sin(t * 0.9 + uv.y * 1.8), cos(t * 0.7 + uv.x * 1.5));
+
+    float n1 = fbm(p * 1.35 + vec2(t * 0.25, -t * 0.18));
+    float n2 = fbm(p * 2.1  - vec2(t * 0.16,  t * 0.21));
+    float neb = smoothstep(0.25, 0.9, n1 * 0.75 + n2 * 0.5);
+
+    float spin = 0.5 + 0.5 * sin((uv.x + uv.y) * 3.6 + t * 1.4 + iMid * 2.0);
+
+    vec3 c1 = vec3(0.05, 0.08, 0.20);
+    vec3 c2 = vec3(0.12, 0.05, 0.22);
+    vec3 c3 = vec3(0.06, 0.18, 0.26);
+    vec3 col = mix(c1, c2, n1);
+    col = mix(col, c3, spin * 0.7 + n2 * 0.3);
+    col *= neb;
+
+    // Keep this behind code/bars: capped to <= 60% brightness.
+    col = clamp(col * (0.30 + iBass * 0.25 + iMid * 0.10), 0.0, 0.60);
+
+    fragColor = vec4(col, 1.0);
+}
+"""
+
 _FRAG_RAIN = """
 #version 330
 uniform float iTime;
@@ -178,6 +242,9 @@ class AudioSpectrum(BaseEffect):
     def _init(self) -> None:
         self.parameters = {"mode": 2, "glow": 1.0}
 
+        self._nebula_prog = self._make_program(_VERT_FULL, _FRAG_NEBULA)
+        self._nebula_vao, self._nebula_vbo = self._fullscreen_quad(self._nebula_prog)
+
         self._rain_prog = self._make_program(_VERT_FULL, _FRAG_RAIN)
         self._rain_vao, self._rain_vbo = self._fullscreen_quad(self._rain_prog)
 
@@ -209,11 +276,13 @@ class AudioSpectrum(BaseEffect):
         self._peak   = np.zeros(_N_BARS, dtype=np.float32)
         self._peak_hold = np.zeros(_N_BARS, dtype=np.float32)
         self._bass   = 0.0
+        self._mid    = 0.0
         self._treble = 0.0
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
         self._bass   = audio.bass
+        self._mid    = audio.mid
         self._treble = audio.treble
 
         if audio.fft is not None and len(audio.fft) >= _N_BARS:
@@ -265,6 +334,13 @@ class AudioSpectrum(BaseEffect):
         mode = int(self.parameters["mode"]) % 3
         self.ctx.clear(0.0, 0.0, 0.0, 1.0)
 
+        # Nebula layer (kept dim to avoid overpowering glyphs/bars)
+        self._nebula_prog["iTime"].value       = self.time
+        self._nebula_prog["iBass"].value       = self._bass
+        self._nebula_prog["iMid"].value        = self._mid
+        self._nebula_prog["iResolution"].value = (float(self.width), float(self.height))
+        self._nebula_vao.render(moderngl.TRIANGLE_STRIP)
+
         # Matrix rain background (additive blend ON)
         self.ctx.enable(moderngl.BLEND)
         self._rain_prog["iTime"].value       = self.time
@@ -290,6 +366,9 @@ class AudioSpectrum(BaseEffect):
                 self._wave_vao.render(moderngl.LINE_STRIP, vertices=n_wave)
 
     def destroy(self) -> None:
+        self._nebula_vao.release()
+        self._nebula_vbo.release()
+        self._nebula_prog.release()
         self._rain_vao.release()
         self._rain_vbo.release()
         self._rain_prog.release()

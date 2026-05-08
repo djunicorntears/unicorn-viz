@@ -191,6 +191,7 @@ class HotkeyHandler:
     def _screenshot(self) -> None:
         import datetime
         import numpy as np
+        from pathlib import Path
         from PIL import Image
 
         ctx = self._app._ctx  # noqa: SLF001
@@ -201,7 +202,9 @@ class HotkeyHandler:
         img = Image.frombytes("RGB", (w, h), data)
         img = img.transpose(Image.FLIP_TOP_BOTTOM)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = f"unicornviz_{ts}.png"
+        out_dir = Path("screenshots")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"unicornviz_{ts}.png"
         img.save(path)
         self._overlays.flash_message(f"Screenshot: {path}", 3.0)
         log.info("Screenshot saved: %s", path)
