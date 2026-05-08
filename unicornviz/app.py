@@ -361,6 +361,12 @@ void main() {
 
         playlist = Playlist(effects, self.cfg)
         overlays = Overlays(self._ctx, self._width, self._height)
+        overlays.set_effect_shortcuts(playlist.effects)
+        if overlays.unmapped_effects:
+            log.warning(
+                "Effects without direct shortcuts (beyond 20): %s",
+                ", ".join(overlays.unmapped_effects),
+            )
         hotkeys = HotkeyHandler(
             app=self,
             playlist=playlist,

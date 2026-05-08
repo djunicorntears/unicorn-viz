@@ -7,9 +7,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import moderngl
 import numpy as np
+
+if TYPE_CHECKING:
+    from unicornviz.effects.base import BaseEffect
 
 log = logging.getLogger(__name__)
 
@@ -277,6 +281,9 @@ class Overlays:
         " U           Show splash anytime",
     ]
 
+    NUM_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+    SHIFT_KEYS = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"]
+
     def __init__(
         self,
         ctx: moderngl.Context,
@@ -294,6 +301,9 @@ class Overlays:
         self._flash_text: str = ""
         self._flash_timer: float = 0.0
         self._name_text: str = ""
+        self._num_shortcuts: list[str] = []
+        self._shift_shortcuts: list[str] = []
+        self._unmapped_effects: list[str] = []
 
         self._font_tex = _build_font_texture(ctx)
         self._prog = self._build_program()
@@ -431,12 +441,72 @@ void main() {
 
     def _render_help(self) -> None:
         pad = 30.0
-        scale = 3.6
+        scale = 3.4
         lh = 8 * scale + 6
+
+        # Left: generic hotkeys
         y = pad
         for line in self.HELP_TEXT:
             self._draw_text(line, pad, y, scale=scale, color=(0.2, 1.0, 0.4, 0.95))
             y += lh
+
+        # Right: direct effect shortcut columns
+        col_scale = 2.7
+        col_lh = 8 * col_scale + 4
+        col1_x = self._width * 0.53
+        col2_x = self._width * 0.76
+        cy = pad
+
+        self._draw_text("1-0 shortcuts", col1_x, cy, scale=col_scale, color=(0.9, 1.0, 0.3, 0.95))
+        self._draw_text("!-) shortcuts", col2_x, cy, scale=col_scale, color=(0.9, 1.0, 0.3, 0.95))
+        cy += col_lh
+        self._draw_text("-------------", col1_x, cy, scale=col_scale, color=(0.7, 0.9, 0.3, 0.9))
+        self._draw_text("-------------", col2_x, cy, scale=col_scale, color=(0.7, 0.9, 0.3, 0.9))
+        cy += col_lh
+
+        max_rows = max(len(self._num_shortcuts), len(self._shift_shortcuts))
+        for i in range(max_rows):
+            if i < len(self._num_shortcuts):
+                self._draw_text(self._num_shortcuts[i], col1_x, cy, scale=col_scale, color=(0.8, 1.0, 0.9, 0.95))
+            if i < len(self._shift_shortcuts):
+                self._draw_text(self._shift_shortcuts[i], col2_x, cy, scale=col_scale, color=(0.9, 0.85, 1.0, 0.95))
+            cy += col_lh
+
+        if self._unmapped_effects:
+            self._draw_text(
+                f"No shortcut: {', '.join(self._unmapped_effects)}",
+                col1_x,
+                cy + col_lh,
+                scale=2.2,
+                color=(1.0, 0.55, 0.55, 0.95),
+            )
+
+    def set_effect_shortcuts(self, effects: list[type["BaseEffect"]]) -> None:
+        """Build help overlay columns for 1-0 and !-) effect shortcut mappings."""
+        self._num_shortcuts = []
+        self._shift_shortcuts = []
+        self._unmapped_effects = []
+
+        names = [cls.NAME for cls in effects]
+        for i, key in enumerate(self.NUM_KEYS):
+            if i < len(names):
+                self._num_shortcuts.append(f"{key} -> {names[i]}")
+            else:
+                self._num_shortcuts.append(f"{key} -> (none)")
+
+        for i, key in enumerate(self.SHIFT_KEYS):
+            idx = 10 + i
+            if idx < len(names):
+                self._shift_shortcuts.append(f"{key} -> {names[idx]}")
+            else:
+                self._shift_shortcuts.append(f"{key} -> (none)")
+
+        if len(names) > 20:
+            self._unmapped_effects = names[20:]
+
+    @property
+    def unmapped_effects(self) -> list[str]:
+        return list(self._unmapped_effects)
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
