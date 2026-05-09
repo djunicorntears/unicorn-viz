@@ -174,8 +174,8 @@ class Cube3D(BaseEffect):
         self._beat = max(0.0, self._beat - dt * 4.0)
 
         spd = self.parameters["speed"] * (1.0 + self._bass * 0.5)
-        self._rx += dt * spd * 0.55 + dt * audio.mid * 0.2
-        self._ry += dt * spd * 0.83
+        self._rx += dt * spd * 0.45 + dt * audio.mid * 0.18
+        self._ry += dt * spd * 0.70
 
     def render(self) -> None:
         aspect = self.width / max(self.height, 1)

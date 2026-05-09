@@ -8,7 +8,7 @@ uploads it as an RGBA GL texture, and renders it fullscreen with a smooth:
   - hold until ``duration`` seconds total have elapsed
   - 0.8 s fade-out
 
-The splash is also dismissed immediately on Space or any key press.
+The splash is time-based and is not dismissed by key presses.
 
 Usage (called from App.run() before the main loop)::
 
@@ -156,7 +156,7 @@ class Splash:
 
     def run(self, window: object) -> bool:
         """
-        Block until the splash finishes or the user presses any key.
+        Block until the splash finishes.
 
         Parameters
         ----------
@@ -166,7 +166,7 @@ class Splash:
         Returns
         -------
         bool
-            True if the app should quit (e.g. the user pressed Escape).
+            True if the app should quit (e.g. window close requested).
         """
         import sdl2
 
@@ -179,15 +179,11 @@ class Splash:
             now  = time.perf_counter()
             elapsed = now - start
 
-            # Input handling — any key skips / Esc quits
+            # Input handling — ignore key presses; only window close can abort.
             event = sdl2.SDL_Event()
             while sdl2.SDL_PollEvent(event):
                 if event.type == sdl2.SDL_QUIT:
                     quit_requested = True
-                    self._done = True
-                elif event.type == sdl2.SDL_KEYDOWN:
-                    if event.key.keysym.sym == sdl2.SDLK_ESCAPE:
-                        quit_requested = True
                     self._done = True
 
             # Pull audio each frame (if available) and smooth into pulse.
