@@ -55,16 +55,16 @@ void main() {
     if (life <= 0.0) {
         // Respawn at origin with random velocity
         float angle = rng(in_seed) * 6.28318;
-        float spd   = rng(in_seed + 1.3) * 0.8 + 0.1 + iBass * 0.5;
-        float burst  = iBeat * 2.0;
+        float spd   = rng(in_seed + 1.3) * 0.8 + 0.2 + iBass * 0.8;  // More beat responsive
+        float burst  = iBeat * 3.5;  // Stronger beat burst
         out_pos  = iOrigin;
         out_vel  = vec2(cos(angle), sin(angle)) * (spd + burst);
-        out_life = rng(in_seed + 2.7) * 2.0 + 0.5;
+        out_life = rng(in_seed + 2.7) * 2.5 + 0.7;  // Slightly longer life for more color
         out_seed = rng(in_seed + 99.9);
     } else {
-        vec2 force = curl(in_pos * 0.8) * (1.0 + iBass * 1.5);
+        vec2 force = curl(in_pos * 0.8) * (1.0 + iBass * 2.2);  // More responsive to bass
         force += vec2(0.0, 0.15);        // slight upward drift
-        force -= in_vel * 0.4;           // drag
+        force -= in_vel * 0.35;           // slightly less drag for faster motion
 
         out_vel  = in_vel + force * dt;
         out_pos  = in_pos + out_vel * dt;
@@ -83,6 +83,7 @@ in  float in_life;
 uniform vec2  iResolution;
 uniform float iTreble;
 uniform float iBass;
+uniform float iTime;
 
 out float v_life;
 out vec3  v_col;
@@ -92,15 +93,17 @@ void main() {
 
     // Map [-1,1] pos → screen NDC
     gl_Position = vec4(in_pos, 0.0, 1.0);
-    // Life-based point size
-    float sz = (in_life * 2.0 + iBass * 3.0) * (iResolution.y / 600.0);
-    gl_PointSize = clamp(sz, 1.0, 8.0);
+    // Life-based point size with more beat responsiveness
+    float sz = (in_life * 2.5 + iBass * 4.5) * (iResolution.y / 600.0);
+    gl_PointSize = clamp(sz, 1.0, 10.0);
 
-    // Colour: hot core (white) → orange → dark red based on life
-    float t = clamp(in_life * 0.5, 0.0, 1.0) + iTreble * 0.2;
-    v_col = mix(vec3(0.1, 0.0, 0.0),
-                mix(vec3(1.0, 0.4, 0.0), vec3(1.0, 1.0, 0.8), t * 0.5),
-                t);
+    // Enhanced colour with more variation and time-based hue cycling
+    float t = clamp(in_life * 0.5, 0.0, 1.0) + iTreble * 0.35;
+    // Cycle through warm/cool tones based on life and time
+    float hue_shift = sin(iTime * 0.5 + in_life * 2.0) * 0.2;
+    vec3 cool_cold = mix(vec3(0.05, 0.2, 0.4), vec3(0.3, 0.6, 1.0), t * 0.3);
+    vec3 warm_hot = mix(vec3(1.0, 0.2, 0.0), vec3(1.0, 1.0, 0.8), t * 0.6);
+    v_col = mix(cool_cold, warm_hot, 0.5 + 0.5 * sin(iTreble * 6.0 + hue_shift));
 }
 """
 
@@ -132,7 +135,8 @@ class ParticleStorm(BaseEffect):
         self._treble = 0.0
         self._beat = 0.0
 
-        rng = np.random.default_rng(1337)
+        # Randomize initial particle distribution (not fixed seed)
+        rng = self.rng
         pos  = rng.uniform(-1.0, 1.0, (_NUM_PARTICLES, 2)).astype(np.float32)
         vel  = rng.uniform(-0.2, 0.2, (_NUM_PARTICLES, 2)).astype(np.float32)
         life = rng.uniform( 0.0, 2.5, _NUM_PARTICLES).astype(np.float32)
@@ -210,6 +214,7 @@ class ParticleStorm(BaseEffect):
         self._render_prog["iResolution"].value = (float(self.width), float(self.height))
         self._render_prog["iTreble"].value = self._treble
         self._render_prog["iBass"].value = self._bass
+        self._render_prog["iTime"].value = self.time
 
         # Read from the buffer that was just written to
         render_vao = self._render_vao_b if self._ping else self._render_vao_a
