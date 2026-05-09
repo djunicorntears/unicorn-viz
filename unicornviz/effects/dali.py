@@ -8,6 +8,7 @@ Audio reactivity:
 """
 from __future__ import annotations
 
+import math
 import moderngl
 
 from unicornviz.effects.base import BaseEffect, AudioData
@@ -30,6 +31,8 @@ uniform float iBass;
 uniform float iMid;
 uniform float iBeat;
 uniform float iSpeed;
+uniform float iRotBg;
+uniform float iRotFg;
 
 in vec2 v_uv;
 out vec4 fragColor;
@@ -56,9 +59,19 @@ float sdBlob(vec2 p, vec2 c, float r, float wob, float t) {
     return length(q) - rr;
 }
 
+vec2 rot2d(vec2 p, float a) {
+    float c = cos(a);
+    float s = sin(a);
+    return vec2(c * p.x - s * p.y, s * p.x + c * p.y);
+}
+
 void main() {
-    vec2 uv = v_uv * 2.0 - 1.0;
-    uv.x *= iResolution.x / max(iResolution.y, 1.0);
+    vec2 uv0 = v_uv * 2.0 - 1.0;
+    uv0.x *= iResolution.x / max(iResolution.y, 1.0);
+
+    // Background and foreground can rotate independently.
+    vec2 uv_bg = rot2d(uv0, iRotBg);
+    vec2 uv = rot2d(uv0, iRotFg);
 
     float t = iTime * (0.35 + iSpeed * 0.75);
 
@@ -74,7 +87,7 @@ void main() {
 
     float blobs = smoothstep(0.03, -0.03, min(min(d1, d2), d3));
 
-    float bgN = noise(uv * 3.0 + vec2(t * 0.12, -t * 0.07));
+    float bgN = noise(uv_bg * 3.0 + vec2(t * 0.12, -t * 0.07));
     vec3 bgA = vec3(0.18, 0.12, 0.08);
     vec3 bgB = vec3(0.45, 0.28, 0.15);
     vec3 bg = mix(bgA, bgB, bgN);
@@ -106,12 +119,35 @@ class Dali(BaseEffect):
     TAGS = ["art", "surreal", "audio"]
 
     def _init(self) -> None:
-        self.parameters = {"speed": 1.0}
+        self.parameters = {
+            "speed": 1.0,
+            "rotation_interval": 15.0,
+        }
         self._prog = self._make_program(_VERT, _FRAG)
         self._vao, self._vbo = self._fullscreen_quad()
         self._bass = 0.0
         self._mid = 0.0
         self._beat = 0.0
+        self._rot_timer = 0.0
+        self._rot_interval = 15.0
+        self._rot_event_t = 0.0
+        self._rot_event_dur = 3.0
+        self._rot_bg_amp = 0.0
+        self._rot_fg_amp = 0.0
+
+    def _trigger_rotation_event(self) -> None:
+        # Randomly pick which layer is primary; other always counter-rotates.
+        primary_bg = bool(self.rng.integers(0, 2))
+        amp = float(self.rng.uniform(0.10, 0.26))
+        sign = -1.0 if bool(self.rng.integers(0, 2)) else 1.0
+        if primary_bg:
+            self._rot_bg_amp = sign * amp
+            self._rot_fg_amp = -sign * amp * 0.9
+        else:
+            self._rot_fg_amp = sign * amp
+            self._rot_bg_amp = -sign * amp * 0.9
+        self._rot_event_t = 0.0
+        self._rot_event_dur = float(self.rng.uniform(2.4, 3.8))
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
@@ -121,13 +157,30 @@ class Dali(BaseEffect):
             self._beat = 1.0
         self._beat = max(0.0, self._beat - dt * 2.8)
 
+        self._rot_interval = max(5.0, float(self.parameters.get("rotation_interval", 15.0)))
+        self._rot_timer += dt
+        if self._rot_timer >= self._rot_interval:
+            self._rot_timer = 0.0
+            self._trigger_rotation_event()
+        self._rot_event_t = min(self._rot_event_t + dt, self._rot_event_dur)
+
+    def _rotation_values(self) -> tuple[float, float]:
+        if self._rot_event_t >= self._rot_event_dur:
+            return 0.0, 0.0
+        phase = self._rot_event_t / max(self._rot_event_dur, 1e-6)
+        envelope = math.sin(phase * math.pi)
+        return self._rot_bg_amp * envelope, self._rot_fg_amp * envelope
+
     def render(self) -> None:
+        rot_bg, rot_fg = self._rotation_values()
         self._prog["iTime"].value = self.time
         self._prog["iResolution"].value = (float(self.width), float(self.height))
         self._prog["iBass"].value = self._bass
         self._prog["iMid"].value = self._mid
         self._prog["iBeat"].value = self._beat
         self._prog["iSpeed"].value = float(self.parameters["speed"])
+        self._prog["iRotBg"].value = rot_bg
+        self._prog["iRotFg"].value = rot_fg
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:
