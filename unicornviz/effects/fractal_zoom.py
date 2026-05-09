@@ -71,6 +71,14 @@ void main() {
 
     float t = smooth_iter / float(iMaxIter) + iPalShift + iBass * 0.1;
     vec3 col = palette(t);
+    
+    // If stuck at max iterations, show a subtle dark gradient instead of pure black
+    if (i == iMaxIter) {
+        vec2 dist = abs(uv - vec2(0.5)) * 2.0;
+        float d = length(dist);
+        col = mix(vec3(0.02), vec3(0.08, 0.05, 0.12), smoothstep(2.0, 0.5, d));
+    }
+    
     fragColor = vec4(col, 1.0);
 }
 """
@@ -117,9 +125,9 @@ class FractalZoom(BaseEffect):
         self._beat_zoom = max(1.0, self._beat_zoom - dt * 3.0)
 
         speed = self.parameters["speed"] * self._beat_zoom
-        self._zoom *= math.exp(dt * 0.4 * speed)
-        self._pal_shift = (self._pal_shift + dt * 0.08 * speed) % 1.0
-        self._rotation += dt * 0.35 * speed  # Continuous rotation during zoom
+        self._zoom *= math.exp(dt * 0.18 * speed)  # Slower zoom for mesmerizing effect
+        self._pal_shift = (self._pal_shift + dt * 0.04 * speed) % 1.0  # Slower color shift
+        self._rotation += dt * 0.12 * speed  # Much slower rotation for contemplation
 
         # Jump to next target when zoomed too deep (precision limit ~1e13)
         if self._zoom > 1e10:

@@ -31,6 +31,7 @@ uniform float iBass;
 uniform float iMid;
 uniform float iBeat;
 uniform float iSpeed;
+uniform float iRotBg;
 uniform float iRotFg;
 
 in vec2 v_uv;
@@ -68,9 +69,8 @@ void main() {
     vec2 uv0 = v_uv * 2.0 - 1.0;
     uv0.x *= iResolution.x / max(iResolution.y, 1.0);
 
-    // Background stays static
-    vec2 uv_bg = uv0;
-    // Foreground rotates on beat
+    // Background and foreground can rotate independently
+    vec2 uv_bg = rot2d(uv0, iRotBg);
     vec2 uv = rot2d(uv0, iRotFg);
 
     float t = iTime * (0.35 + iSpeed * 0.75);
@@ -128,15 +128,22 @@ class Dali(BaseEffect):
         self._beat = 0.0
         self._rot_event_t = 0.0
         self._rot_event_dur = 0.0
+        self._rot_bg_amp = 0.0
         self._rot_fg_amp = 0.0
 
     def _trigger_beat_rotation(self) -> None:
         """Trigger a rotation event on beat with randomized amplitude/duration."""
-        amp = float(self.rng.uniform(0.15, 0.28))
+        primary_bg = bool(self.rng.integers(0, 2))  # Random: background or foreground leads
+        amp = float(self.rng.uniform(0.10, 0.26))
         sign = -1.0 if bool(self.rng.integers(0, 2)) else 1.0
-        self._rot_fg_amp = sign * amp
+        if primary_bg:
+            self._rot_bg_amp = sign * amp
+            self._rot_fg_amp = -sign * amp * 0.9  # Counter-rotate foreground
+        else:
+            self._rot_fg_amp = sign * amp
+            self._rot_bg_amp = -sign * amp * 0.9  # Counter-rotate background
         self._rot_event_t = 0.0
-        self._rot_event_dur = float(self.rng.uniform(2.0, 3.2))
+        self._rot_event_dur = float(self.rng.uniform(2.4, 3.8))
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
@@ -153,21 +160,22 @@ class Dali(BaseEffect):
         if self._rot_event_t < self._rot_event_dur:
             self._rot_event_t += dt
 
-    def _rotation_value(self) -> float:
+    def _rotation_values(self) -> tuple[float, float]:
         if self._rot_event_t >= self._rot_event_dur:
-            return 0.0
+            return 0.0, 0.0
         phase = self._rot_event_t / max(self._rot_event_dur, 1e-6)
         envelope = math.sin(phase * math.pi)
-        return self._rot_fg_amp * envelope
+        return self._rot_bg_amp * envelope, self._rot_fg_amp * envelope
 
     def render(self) -> None:
-        rot_fg = self._rotation_value()
+        rot_bg, rot_fg = self._rotation_values()
         self._prog["iTime"].value = self.time
         self._prog["iResolution"].value = (float(self.width), float(self.height))
         self._prog["iBass"].value = self._bass
         self._prog["iMid"].value = self._mid
         self._prog["iBeat"].value = self._beat
         self._prog["iSpeed"].value = float(self.parameters["speed"])
+        self._prog["iRotBg"].value = rot_bg
         self._prog["iRotFg"].value = rot_fg
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
