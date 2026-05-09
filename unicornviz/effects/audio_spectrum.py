@@ -124,8 +124,8 @@ void main() {
     col = mix(col, c3, spin * 0.7 + n2 * 0.3);
     col *= neb;
 
-    // Keep this behind code/bars: capped to <= 60% brightness.
-    col = clamp(col * (0.30 + iBass * 0.25 + iMid * 0.10), 0.0, 0.60);
+    // Increased brightness and density: now up to 75% brightness
+    col = clamp(col * (0.50 + iBass * 0.35 + iMid * 0.15), 0.0, 0.75);
 
     fragColor = vec4(col, 1.0);
 }
@@ -175,7 +175,8 @@ float glyph6(int id, vec2 frac) {
 }
 
 void main() {
-    // Character grid: wider cells so symbols are legible
+    // Character grid: width matches eq bar width for visual alignment
+    // 64 bars = 64 chars across screen
     float charW = iResolution.x / 64.0;
     float charH = charW * 1.5;
 
@@ -304,23 +305,33 @@ class AudioSpectrum(BaseEffect):
             self._wave = np.zeros(_N_WAVE, dtype=np.float32)
 
     def _build_bars(self) -> tuple[np.ndarray, int]:
+        """Build bars as stacked discrete blocks (80s boombox style)."""
         verts = []
         bar_w = 2.0 / _N_BARS
+        block_h = 0.05  # Height of each discrete block
+        
         for i in range(_N_BARS):
             h = float(self._smooth[i]) * 1.8
             x0 = -1.0 + i * bar_w + bar_w * 0.05
             x1 = x0 + bar_w * 0.90
-            y0 = -1.0
-            y1 = -1.0 + h
             r, g, b = _bar_colour(i, _N_BARS)
             mag = float(self._smooth[i])
-            # 2 triangles per bar
-            for x, y in [(x0,y0),(x1,y0),(x0,y1),(x1,y0),(x1,y1),(x0,y1)]:
-                verts += [x, y, mag, r, g, b]
-            # Peak dot
-            py = -1.0 + float(self._peak[i]) * 1.8 + 0.01
-            for x, y in [(x0,py),(x1,py),(x0,py+0.008),(x1,py),(x1,py+0.008),(x0,py+0.008)]:
+            
+            # Stack discrete blocks from bottom up
+            num_blocks = max(1, int(h / block_h))
+            for block_idx in range(num_blocks):
+                by0 = -1.0 + block_idx * block_h
+                by1 = by0 + block_h * 0.9  # Small gap between blocks
+                # 2 triangles per block
+                for x, y in [(x0, by0), (x1, by0), (x0, by1), (x1, by0), (x1, by1), (x0, by1)]:
+                    verts += [x, y, mag, r, g, b]
+            
+            # Peak indicator: white block at peak height
+            py = -1.0 + float(self._peak[i]) * 1.8
+            peak_block_h = 0.04
+            for x, y in [(x0, py), (x1, py), (x0, py + peak_block_h), (x1, py), (x1, py + peak_block_h), (x0, py + peak_block_h)]:
                 verts += [x, y, 1.0, 1.0, 1.0, 1.0]
+        
         arr = np.array(verts, dtype=np.float32)
         return arr, len(arr) // 6
 
