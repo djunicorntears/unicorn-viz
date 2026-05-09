@@ -5,7 +5,6 @@ Audio-reactive: bass grows orb radii, beat fires a new orb burst.
 from __future__ import annotations
 
 import math
-import numpy as np
 import moderngl
 
 from unicornviz.effects.base import BaseEffect, AudioData
@@ -74,11 +73,10 @@ class Metaballs(BaseEffect):
         self.parameters = {"speed": 1.0}
         self._prog = self._make_program(_VERT, _FRAG)
         self._vao, self._vbo = self._fullscreen_quad()
-        # Random phase offsets and orbits for each ball
-        rng = np.random.default_rng(42)
-        self._phases = rng.uniform(0, math.tau, (_NUM_BALLS, 3))
-        self._freqs = rng.uniform(0.3, 1.1, (_NUM_BALLS, 2))
-        self._radii = rng.uniform(0.12, 0.22, _NUM_BALLS)
+        # Random phase offsets and orbits for each ball (randomized every startup)
+        self._phases = self.rng.uniform(0, math.tau, (_NUM_BALLS, 3))
+        self._freqs = self.rng.uniform(0.3, 1.1, (_NUM_BALLS, 2))
+        self._radii = self.rng.uniform(0.12, 0.22, _NUM_BALLS)
         self._bass = 0.0
         self._beat = 0.0
 
