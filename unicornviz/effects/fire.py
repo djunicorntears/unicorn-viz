@@ -1,15 +1,15 @@
 """
-Fire — GPU ping-pong fluid fire simulation.
+Curtains — GPU ping-pong flowing light curtains.
 
-Two off-screen FBOs alternate each frame.  A "simulate" shader evolves
-the heat field (diffuse/advect upward/cool); a "render" shader maps heat
-to a vivid multi-colour palette.  The bottom edge is ignited each frame
-by a noise bar whose intensity scales with bass.
+Two off-screen FBOs alternate each frame. A simulation shader evolves
+an energy field with upward flow and diffusion; a display shader maps
+the field to vivid curtain-like bands. The previous hard ignition strip
+is replaced by a soft, distributed source to avoid a visible bar.
 
 Audio reactivity:
-  - bass   → ignition intensity + ember scatter
-  - beat   → instantaneous heat spike across the whole base
-  - treble → adds fast flicker to the flame tips
+  - bass   → source intensity and flow lift
+  - beat   → temporary energy spike
+  - treble → shimmer/flicker at the curtain edges
 """
 from __future__ import annotations
 
@@ -74,15 +74,13 @@ void main() {
     float cool = 0.006 + iTreble * 0.004;
     heat = max(0.0, heat - cool);
 
-    // Bottom ignition strip
-    float ignY = 10.0 * px.y;
-    if (v_uv.y < ignY) {
-        float n = hash(vec2(v_uv.x * 73.1, iTime * 0.3));
-        float n2 = hash(vec2(v_uv.x * 17.9, iTime * 0.17 + 5.3));
-        float base = iIntensity + iBass * 0.55 + iBeat * 0.75;
-        heat = mix(heat, clamp(base * (0.7 + 0.3 * n), 0.0, 1.0),
-                   0.55 + 0.35 * n2);
-    }
+    // Soft distributed source near the lower region (no hard bar).
+    float src = smoothstep(0.40, 0.02, v_uv.y);
+    float n = hash(vec2(v_uv.x * 73.1, iTime * 0.3));
+    float n2 = hash(vec2(v_uv.x * 17.9, iTime * 0.17 + 5.3));
+    float base = iIntensity + iBass * 0.55 + iBeat * 0.75;
+    float source = clamp(base * (0.55 + 0.45 * n), 0.0, 1.0);
+    heat = mix(heat, source, src * (0.35 + 0.35 * n2));
 
     fragColor = vec4(heat, 0.0, 0.0, 1.0);
 }
@@ -141,15 +139,15 @@ void main() {
 """
 
 
-class Fire(BaseEffect):
-    """GPU ping-pong fluid fire with vivid palette and full audio reactivity."""
+class Curtains(BaseEffect):
+    """GPU ping-pong flowing curtains with vivid palette and audio reactivity."""
 
-    NAME = "Fire"
+    NAME = "Curtains"
     AUTHOR = "unicorn-viz"
     TAGS = ["classic", "audio", "gpu"]
 
     def _init(self) -> None:
-        self.parameters = {"intensity": 0.82, "speed": 1.0, "zoom": 1.6}
+        self.parameters = {"intensity": 0.82, "speed": 1.0, "zoom": 1.0}
 
         self._sim_prog  = self._make_program(_VERT, _SIM_FRAG)
         self._disp_prog = self._make_program(_VERT, _DISPLAY_FRAG)

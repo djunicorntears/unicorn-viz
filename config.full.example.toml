@@ -83,14 +83,20 @@ speed = 1.0
 
 [effects.Dali]
 speed = 1.0
+rotation_interval = 15.0
 
 [effects.Escher]
 speed = 1.0
+vignette = 0.0
 
-[effects.Fire]
+[effects.Curtains]
 intensity = 0.82
 speed = 1.0
-zoom = 1.6
+zoom = 1.0
+
+[effects.Fire]
+intensity = 0.90
+speed = 1.0
 
 [effects.FractalZoom]
 speed = 1.0

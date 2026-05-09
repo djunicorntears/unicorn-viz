@@ -26,6 +26,7 @@ class HotkeyHandler:
     ) -> None:
         self._app = app
         self._playlist = playlist
+        self._shortcut_effects = playlist.shortcut_effects
         self._overlays = overlays
         self._audio = audio_manager
 
@@ -137,20 +138,24 @@ class HotkeyHandler:
             o.flash_message(f"Audio reactivity: {am._reactivity:.1f}x", 1.5)
 
         elif sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
+            if not self._shortcut_effects:
+                return
             # Shift+1..9 may still come through as SDLK_1..9 + KMOD_SHIFT.
             if mod & sdl2.KMOD_SHIFT:
                 idx = 9 + (sym - sdl2.SDLK_1)   # 10..18
             else:
                 idx = sym - sdl2.SDLK_1          # 0..8
-            cls = p.go_index(idx)
+            cls = self._shortcut_effects[idx % len(self._shortcut_effects)]
             log.info("Scene change → %s (key index %d)", cls.NAME, idx)
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
         elif sym == sdl2.SDLK_0:
+            if not self._shortcut_effects:
+                return
             # 0 = index 9, Shift+0 (')') = index 19
             idx = 19 if (mod & sdl2.KMOD_SHIFT) else 9
-            cls = p.go_index(idx)
+            cls = self._shortcut_effects[idx % len(self._shortcut_effects)]
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 
@@ -159,6 +164,8 @@ class HotkeyHandler:
                      sdl2.SDLK_DOLLAR, sdl2.SDLK_PERCENT, sdl2.SDLK_CARET,
                      sdl2.SDLK_AMPERSAND, sdl2.SDLK_ASTERISK,
                      sdl2.SDLK_LEFTPAREN, sdl2.SDLK_RIGHTPAREN):
+            if not self._shortcut_effects:
+                return
             _shift_syms = [
                 sdl2.SDLK_EXCLAIM, sdl2.SDLK_AT, sdl2.SDLK_HASH,
                 sdl2.SDLK_DOLLAR, sdl2.SDLK_PERCENT, sdl2.SDLK_CARET,
@@ -166,7 +173,7 @@ class HotkeyHandler:
                 sdl2.SDLK_LEFTPAREN, sdl2.SDLK_RIGHTPAREN,
             ]
             idx = 10 + _shift_syms.index(sym)   # effects 10–19
-            cls = p.go_index(idx)
+            cls = self._shortcut_effects[idx % len(self._shortcut_effects)]
             a.goto_effect(cls)
             o.flash_name(cls.NAME)
 

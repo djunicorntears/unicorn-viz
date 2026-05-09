@@ -25,7 +25,7 @@ zoom = 1.8
 
 ## Built-in Effects
 
-### `AlienBiome` (`Alien`)
+### `AlienBiome` (`Wavey Gravy`)
 
 ```toml
 [effects.AlienBiome]
@@ -83,6 +83,8 @@ speed = 1.0
 ```toml
 [effects.Dali]
 speed = 1.0
+# seconds between occasional counter-rotation events
+rotation_interval = 15.0
 ```
 
 ### `Escher` (`Escher`)
@@ -90,18 +92,27 @@ speed = 1.0
 ```toml
 [effects.Escher]
 speed = 1.0
+# 0.0 = off by default
+vignette = 0.0
+```
+
+### `Curtains` (`Curtains`)
+
+```toml
+[effects.Curtains]
+intensity = 0.82
+speed = 1.0
+zoom = 1.0
 ```
 
 ### `Fire` (`Fire`)
 
 ```toml
 [effects.Fire]
-# source heat strength
-intensity = 0.82
-# simulation/update speed
+# lifelike procedural flame strength
+intensity = 0.90
+# global flame motion speed
 speed = 1.0
-# display zoom (>1.0 zooms out, <1.0 zooms in)
-zoom = 1.6
 ```
 
 ### `FractalZoom` (`Fractal Zoom`)

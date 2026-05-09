@@ -86,3 +86,8 @@ class Playlist:
     @property
     def effects(self) -> list[Type[BaseEffect]]:
         return self._effects
+
+    @property
+    def shortcut_effects(self) -> list[Type[BaseEffect]]:
+        """Effects used by numeric hotkeys (ANSI Viewer excluded)."""
+        return [cls for cls in self._effects if cls.__name__ != "ANSIViewer"]
