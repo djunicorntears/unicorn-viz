@@ -173,7 +173,7 @@ transition_duration = 1.0           # seconds
 [audio]
 device         = ""      # empty = auto-detect PipeWire monitor
 fft_bands      = 512
-buffer_seconds = 2.0
+buffer_seconds = 10.0
 
 [midi]
 device = ""             # empty = disabled, or name substring

@@ -23,7 +23,7 @@ transition_duration = 1.0
 # empty string = auto-detect best source
 device = ""
 fft_bands = 512
-buffer_seconds = 2.0
+buffer_seconds = 10.0
 reactivity = 1.5
 # low, medium, high
 latency = "high"
