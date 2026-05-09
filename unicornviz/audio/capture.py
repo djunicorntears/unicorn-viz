@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections import deque
 
 import numpy as np
@@ -22,6 +23,7 @@ except Exception as e:
 _SAMPLE_RATE = 48000   # PipeWire default; 44100 fallback attempted at runtime
 _BLOCK_SIZE = 1024
 _CHANNELS = 2
+_WARMUP_DURATION = 0.3  # seconds: time to let buffer stabilize after stream opens
 
 
 def _candidate_monitor_devices(hint: str, try_alsa: bool = True) -> list[int | None]:
@@ -165,6 +167,7 @@ class AudioCapture:
         self._candidate_devices: list[int | None] = []
         self._candidate_index = 0
         self._silent_blocks = 0
+        self._stream_opened_time: float = 0.0  # Track when stream opens for warmup
 
     def _open_stream(self, device: int | None) -> None:
         native_rate: int = _SAMPLE_RATE
@@ -202,7 +205,8 @@ class AudioCapture:
         self._stream.start()
         self._active = True
         self._silent_blocks = 0
-        log.debug("Audio: stream opened and started")
+        self._stream_opened_time = time.time()  # Start warmup timer
+        log.debug("Audio: stream opened and started, warmup period %.1fs", _WARMUP_DURATION)
         if device is not None:
             dev_name = sd.query_devices(device)['name']
             if 'loopback' in dev_name.lower():
@@ -278,7 +282,18 @@ class AudioCapture:
         except Exception as exc:
             log.warning('Audio fallback failed: %s', exc)
 
+    def _is_warmed_up(self) -> bool:
+        """Check if stream has had enough time to stabilize after opening."""
+        if self._stream_opened_time == 0.0:
+            return False
+        elapsed = time.time() - self._stream_opened_time
+        return elapsed >= _WARMUP_DURATION
+
     def get_block(self) -> np.ndarray | None:
+        # Skip audio consumption during warmup to avoid buffer overflow
+        if not self._is_warmed_up():
+            log.debug("Audio: warming up (%.1fs so far)", time.time() - self._stream_opened_time)
+            return None
         with self._lock:
             if not self._buf:
                 return None
