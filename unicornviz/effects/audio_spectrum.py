@@ -329,10 +329,10 @@ class AudioSpectrum(BaseEffect):
             
             # Peak indicator: translucent inverse-color block at peak height
             py = -1.0 + float(self._peak[i]) * 1.8
-            peak_block_h = 0.04
+            peak_block_h = 0.02
             inv_r, inv_g, inv_b = 1.0 - r, 1.0 - g, 1.0 - b
             for x, y in [(x0, py), (x1, py), (x0, py + peak_block_h), (x1, py), (x1, py + peak_block_h), (x0, py + peak_block_h)]:
-                verts += [x, y, inv_r, inv_g, inv_b, 0.7]
+                verts += [x, y, inv_r, inv_g, inv_b, 0.6]
         
         arr = np.array(verts, dtype=np.float32)
         return arr, len(arr) // 6
