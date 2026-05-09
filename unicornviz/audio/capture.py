@@ -187,6 +187,7 @@ class AudioCapture:
         self._sample_rate = native_rate
         self._channels = native_channels
         new_maxlen = int(native_rate * self._buffer_seconds / _BLOCK_SIZE) + 1
+        log.debug("Audio: opening stream device=%s rate=%d channels=%d buffer_size=%d", device, native_rate, native_channels, new_maxlen)
         with self._lock:
             self._buf = deque(maxlen=new_maxlen)
         self._stream = sd.InputStream(
@@ -201,6 +202,7 @@ class AudioCapture:
         self._stream.start()
         self._active = True
         self._silent_blocks = 0
+        log.debug("Audio: stream opened and started")
         if device is not None:
             dev_name = sd.query_devices(device)['name']
             if 'loopback' in dev_name.lower():
@@ -221,6 +223,7 @@ class AudioCapture:
                 self._device_hint, try_alsa=self._try_alsa_loopback
             )
             self._candidate_index = 0
+            log.debug("Audio: candidate devices = %s", self._candidate_devices)
             self._open_stream(self._candidate_devices[self._candidate_index])
         except Exception as exc:
             log.warning("Could not open audio stream: %s", exc)
@@ -233,7 +236,7 @@ class AudioCapture:
         status,
     ) -> None:
         if status:
-            log.debug("Audio status: %s", status)
+            log.warning("Audio callback status: %s", status)
         mono = indata.mean(axis=1) if indata.ndim > 1 and indata.shape[1] > 1 else indata[:, 0]
         rms = float(np.sqrt(np.mean(mono * mono)))
         if rms < 0.002:
@@ -242,6 +245,8 @@ class AudioCapture:
             self._silent_blocks = 0
         with self._lock:
             self._buf.append(mono.copy())
+        if len(self._buf) == 1:
+            log.debug("Audio: first block received (rms=%.4f, silent_blocks=%d)", rms, self._silent_blocks)
 
     def maybe_fallback(self) -> None:
         """Switch to next candidate device if current source appears silent."""
@@ -251,7 +256,9 @@ class AudioCapture:
         if silent_time < 0.8:
             return
         if self._candidate_index + 1 >= len(self._candidate_devices):
+            log.debug("Audio: silent for %.2fs but no more fallback candidates", silent_time)
             return
+        log.debug("Audio: silent for %.2fs, attempting fallback (current=%d)", silent_time, self._candidate_index)
 
         current = self._candidate_devices[self._candidate_index]
         self._candidate_index += 1

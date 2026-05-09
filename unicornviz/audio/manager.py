@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import logging
 
+import numpy as np
+
 from unicornviz.effects.base import AudioData
 from unicornviz.audio.capture import AudioCapture
 from unicornviz.audio.analyzer import Analyzer
@@ -36,7 +38,9 @@ class AudioManager:
         self._last_data = AudioData()
 
     def start(self) -> None:
+        log.debug("AudioManager: starting capture")
         self._capture.start()
+        log.debug("AudioManager: capture started, analyzer ready")
 
     def stop(self) -> None:
         self._capture.stop()
@@ -45,6 +49,9 @@ class AudioManager:
         """Called every frame from the main loop."""
         self._capture.maybe_fallback()
         block = self._capture.get_block()
+        if block is not None and len(block) > 0:
+            rms = float(np.sqrt(np.mean(block * block)))
+            log.debug("Audio frame: rms=%.4f bass=%.3f mid=%.3f treble=%.3f", rms, self._last_data.bass, self._last_data.mid, self._last_data.treble)
         data = self._analyzer.process(block)
         if self._reactivity != 1.0:
             data.bass   = min(1.0, data.bass   * self._reactivity)
