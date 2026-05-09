@@ -206,7 +206,10 @@ class AudioCapture:
         self._active = True
         self._silent_blocks = 0
         self._stream_opened_time = time.time()  # Start warmup timer
-        log.debug("Audio: stream opened and started, warmup period %.1fs", _WARMUP_DURATION)
+        # Clear any overflow frames from the buffer during the initial stream setup
+        with self._lock:
+            self._buf.clear()
+        log.debug("Audio: stream opened, buffer cleared, warmup period %.1fs", _WARMUP_DURATION)
         if device is not None:
             dev_name = sd.query_devices(device)['name']
             if 'loopback' in dev_name.lower():
@@ -253,7 +256,13 @@ class AudioCapture:
             log.debug("Audio: first block received (rms=%.4f, silent_blocks=%d)", rms, self._silent_blocks)
 
     def maybe_fallback(self) -> None:
-        """Switch to next candidate device if current source appears silent."""
+        """Switch to next candidate device if current source appears silent.
+        
+        Suppressed during warmup to avoid device switches that cause overflow.
+        """
+        if not self._is_warmed_up():
+            log.debug("Audio: fallback check suppressed during warmup")
+            return
         if self._device_hint or len(self._candidate_devices) <= 1:
             return
         silent_time = self._silent_blocks * (_BLOCK_SIZE / max(self._sample_rate, 1))
