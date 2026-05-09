@@ -26,6 +26,13 @@ uniform float iTime;
 uniform float iBass;
 uniform float iBeat;
 uniform float iSpeed;
+uniform int   iModeA;
+uniform int   iModeB;
+uniform float iMorph;
+uniform float iAngleA;
+uniform float iAngleB;
+uniform float iZoomA;
+uniform float iZoomB;
 in vec2 v_uv;
 out vec4 fragColor;
 
@@ -43,33 +50,63 @@ vec3 bar_color(int idx, float phase) {
     return palette[idx] * (0.5 + 0.5 * cos(phase));
 }
 
-void main() {
-    float y = v_uv.y;
-    float t = iTime * iSpeed;
-    float spread = 0.12 + iBass * 0.08;
+vec2 transform_uv(vec2 uv, float angle, float zoom) {
+    vec2 p = uv - vec2(0.5);
+    float c = cos(angle);
+    float s = sin(angle);
+    mat2 rot = mat2(c, -s, s, c);
+    p = rot * p / max(zoom, 0.01);
+    return p + vec2(0.5);
+}
 
-    vec3 col = vec3(0.02);  // dark background
+float axis_for_mode(int mode, vec2 uv) {
+    if (mode == 0) {
+        // Horizontal bars
+        return uv.y;
+    }
+    if (mode == 1) {
+        // Vertical bars
+        return uv.x;
+    }
+    // Diagonal bars
+    return clamp((uv.x + uv.y) * 0.5, 0.0, 1.0);
+}
 
+vec3 bars_for_axis(float axis, vec2 uv, float t, float spread, float beat) {
+    vec3 col = vec3(0.02);
     for (int i = 0; i < NUM_BARS; i++) {
         float fi = float(i) / float(NUM_BARS);
-        // Each bar centre oscillates on its own sine
         float center = 0.5
             + sin(t * (0.7 + fi * 0.4) + fi * 2.5) * 0.35
             + sin(t * 0.3 + fi) * 0.1;
 
-        float dist = abs(y - center);
+        float dist = abs(axis - center);
         if (dist < spread) {
             float blend = 1.0 - dist / spread;
-            blend = blend * blend * (3.0 - 2.0 * blend); // smoothstep
+            blend = blend * blend * (3.0 - 2.0 * blend);
             vec3 bc = bar_color(i, t * 2.0 + fi * 3.14);
-            bc *= 1.0 + iBeat * 0.5;
+            bc *= 1.0 + beat * 0.5;
             col = mix(col, bc, blend);
         }
     }
 
-    // Scanline overlay
-    float scan = 0.85 + 0.15 * sin(v_uv.y * 1080.0 * 3.14159);
+    float scan = 0.85 + 0.15 * sin(uv.y * 1080.0 * 3.14159);
     col *= scan;
+    return col;
+}
+
+void main() {
+    float t = iTime * iSpeed;
+    float spread = 0.12 + iBass * 0.08;
+
+    vec2 uv_a = transform_uv(v_uv, iAngleA, iZoomA);
+    vec2 uv_b = transform_uv(v_uv, iAngleB, iZoomB);
+    float axis_a = axis_for_mode(iModeA, uv_a);
+    float axis_b = axis_for_mode(iModeB, uv_b);
+
+    vec3 col_a = bars_for_axis(axis_a, uv_a, t, spread, iBeat);
+    vec3 col_b = bars_for_axis(axis_b, uv_b, t, spread, iBeat);
+    vec3 col = mix(col_a, col_b, clamp(iMorph, 0.0, 1.0));
 
     fragColor = vec4(col, 1.0);
 }
@@ -82,11 +119,35 @@ class CopperBars(BaseEffect):
     TAGS = ["classic", "amiga", "audio"]
 
     def _init(self) -> None:
-        self.parameters = {"speed": 1.0}
+        self.parameters = {
+            "speed": 1.0,
+            "mode_interval": 15.0,
+        }
         self._prog = self._make_program(_VERT, _FRAG)
         self._vao, self._vbo = self._fullscreen_quad()
         self._bass = 0.0
         self._beat = 0.0
+        self._mode_a = 0
+        self._mode_b = 0
+        self._mode_timer = 0.0
+        self._mode_transition = 1.0
+        self._mode_transition_duration = 1.4
+        self._angle_a = 0.0
+        self._angle_b = 0.0
+        self._zoom_a = 1.0
+        self._zoom_b = 1.0
+
+    def _mode_base_angle(self, mode: int) -> float:
+        if mode == 0:
+            return 0.0
+        if mode == 1:
+            return 1.57079632679
+        return 0.78539816339
+
+    def _pick_next_mode(self, current: int) -> int:
+        choices = [0, 1, 2]
+        choices.remove(current)
+        return int(self.rng.choice(choices))
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
@@ -95,11 +156,38 @@ class CopperBars(BaseEffect):
         if audio.beat > 0.5:
             self._beat = 1.0
 
+        self._mode_timer += dt
+        interval = max(2.0, float(self.parameters.get("mode_interval", 15.0)))
+        if self._mode_timer >= interval:
+            self._mode_timer = 0.0
+            self._mode_a = self._mode_b
+            self._angle_a = self._angle_b
+            self._zoom_a = self._zoom_b
+
+            self._mode_b = self._pick_next_mode(self._mode_a)
+            base = self._mode_base_angle(self._mode_b)
+            self._angle_b = base + float(self.rng.uniform(-0.28, 0.28))
+            self._zoom_b = float(self.rng.uniform(0.86, 1.24))
+            self._mode_transition = 0.0
+
+        if self._mode_transition < 1.0:
+            self._mode_transition = min(
+                1.0,
+                self._mode_transition + dt / self._mode_transition_duration,
+            )
+
     def render(self) -> None:
         self._prog["iTime"].value = self.time
         self._prog["iBass"].value = self._bass
         self._prog["iBeat"].value = self._beat
         self._prog["iSpeed"].value = self.parameters["speed"]
+        self._prog["iModeA"].value = int(self._mode_a)
+        self._prog["iModeB"].value = int(self._mode_b)
+        self._prog["iMorph"].value = float(self._mode_transition)
+        self._prog["iAngleA"].value = float(self._angle_a)
+        self._prog["iAngleB"].value = float(self._angle_b)
+        self._prog["iZoomA"].value = float(self._zoom_a)
+        self._prog["iZoomB"].value = float(self._zoom_b)
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:

@@ -92,7 +92,7 @@ void main() {
 
 
 class AlienBiome(BaseEffect):
-    NAME = "Alien"
+    NAME = "Wavey Gravy"
     AUTHOR = "unicorn-viz"
     TAGS = ["sci-fi", "audio", "shader"]
 

@@ -4,7 +4,7 @@ the currently active index.
 
 Modes
 -----
-``sequential``  Cycles effects in discovery order (alphabetical by class name).
+``sequential``  Cycles effects in alphabetical display-name order.
 ``random``      Picks a random effect on each advance; can produce repeats.
 
 Pinned sequence

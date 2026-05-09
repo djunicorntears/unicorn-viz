@@ -56,4 +56,7 @@ def _discover() -> None:
 def get_effects() -> list[Type[BaseEffect]]:
     if not _registry:
         _discover()
-    return list(_registry)
+    return sorted(
+        _registry,
+        key=lambda cls: (cls.NAME.lower(), cls.__name__.lower()),
+    )
