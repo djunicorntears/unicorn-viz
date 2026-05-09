@@ -28,6 +28,7 @@ uniform float iCenterY;
 uniform float iZoom;
 uniform float iPalShift;
 uniform float iBass;
+uniform float iRotation;
 uniform int   iMaxIter;
 
 in  vec2 v_uv;
@@ -43,14 +44,20 @@ vec3 palette(float t) {
 
 void main() {
     vec2 uv = v_uv * vec2(iResolution.x / iResolution.y, 1.0);
+    
+    // Apply rotation to the uv coordinates
+    float c = cos(iRotation);
+    float s = sin(iRotation);
+    uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
+    
     vec2 centre = vec2(iCenterX, iCenterY);
-    vec2 c = centre + uv / iZoom;
+    vec2 cplx = centre + uv / iZoom;
 
     vec2 z = vec2(0.0);
     float smooth_iter = 0.0;
     int i;
     for (i = 0; i < iMaxIter; i++) {
-        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + cplx;
         if (dot(z, z) > 256.0) {
             smooth_iter = float(i) - log2(log2(dot(z, z)));
             break;
@@ -90,11 +97,14 @@ class FractalZoom(BaseEffect):
         self._prog = self._make_program(_VERT, _FRAG)
         self._vao, self._vbo = self._fullscreen_quad()
 
-        self._target_idx = 0
-        self._cx, self._cy = _TARGETS[0]
-        self._zoom = 0.6
+        # Randomize initial state so we never see the same fractal startup
+        self._target_idx = int(self.rng.integers(0, len(_TARGETS)))
+        self._cx, self._cy = _TARGETS[self._target_idx]
+        # Start with randomized zoom in valid range to avoid black screen
+        self._zoom = float(self.rng.uniform(0.4, 0.9))
         self._zoom_vel = 1.0   # zoom multiplier per second
         self._pal_shift = 0.0
+        self._rotation = float(self.rng.uniform(-math.pi, math.pi))
         self._bass = 0.0
         self._beat_zoom = 0.0
 
@@ -109,12 +119,17 @@ class FractalZoom(BaseEffect):
         speed = self.parameters["speed"] * self._beat_zoom
         self._zoom *= math.exp(dt * 0.4 * speed)
         self._pal_shift = (self._pal_shift + dt * 0.08 * speed) % 1.0
+        self._rotation += dt * 0.35 * speed  # Continuous rotation during zoom
 
         # Jump to next target when zoomed too deep (precision limit ~1e13)
         if self._zoom > 1e10:
-            self._zoom = 0.7
+            self._zoom = float(self.rng.uniform(0.5, 0.95))  # Randomize zoom on reset
             self._target_idx = (self._target_idx + 1) % len(_TARGETS)
             self._cx, self._cy = _TARGETS[self._target_idx]
+            # Randomize target center slightly within a local region for variety
+            self._cx += float(self.rng.uniform(-0.05, 0.05))
+            self._cy += float(self.rng.uniform(-0.05, 0.05))
+            self._rotation = float(self.rng.uniform(-math.pi, math.pi))  # Fresh rotation
 
     def render(self) -> None:
         self._prog["iResolution"].value = (float(self.width), float(self.height))
@@ -123,6 +138,7 @@ class FractalZoom(BaseEffect):
         self._prog["iZoom"].value = float(self._zoom)
         self._prog["iPalShift"].value = self._pal_shift
         self._prog["iBass"].value = self._bass
+        self._prog["iRotation"].value = float(self._rotation)
         self._prog["iMaxIter"].value = int(self.parameters["max_iter"]
                                            + audio_iter_boost(self._bass))
         self._vao.render(moderngl.TRIANGLE_STRIP)
