@@ -46,6 +46,9 @@ uniform float     iBeat;
 uniform float     iTreble;
 uniform float     iTime;
 uniform float     iIntensity;
+uniform float     iSourcePhase;
+uniform float     iSourceDrift;
+uniform float     iFlowWarp;
 // Simple hash for noise
 float hash(vec2 p) {
     p = fract(p * vec2(127.1, 311.7));
@@ -58,12 +61,13 @@ in  vec2 v_uv;
 void main() {
     vec2 px = 1.0 / iResolution;
 
-    // Sample neighbourhood with upward advection
-    float lift = px.y * (1.35 + iBass * 0.9);
+    // Sample neighbourhood with upward advection + slow warp drift.
+    float lift = px.y * (1.35 + iBass * 0.9 + iFlowWarp * 0.35);
     float c  = texture(prev, v_uv).r;
-    float u  = texture(prev, v_uv + vec2( 0.0,  lift)).r;
-    float ul = texture(prev, v_uv + vec2(-px.x, lift)).r;
-    float ur = texture(prev, v_uv + vec2( px.x, lift)).r;
+    float sway = sin(v_uv.y * 8.0 + iTime * 0.35 + iSourcePhase) * px.x * (1.0 + iFlowWarp * 2.0);
+    float u  = texture(prev, v_uv + vec2( sway,  lift)).r;
+    float ul = texture(prev, v_uv + vec2(-px.x + sway, lift)).r;
+    float ur = texture(prev, v_uv + vec2( px.x + sway, lift)).r;
     float l  = texture(prev, v_uv + vec2(-px.x, 0.0 )).r;
     float r  = texture(prev, v_uv + vec2( px.x, 0.0 )).r;
 
@@ -76,9 +80,10 @@ void main() {
 
     // Soft distributed source near the lower region (no hard bar).
     float src = smoothstep(0.40, 0.02, v_uv.y);
-    float n = hash(vec2(v_uv.x * 73.1, iTime * 0.3));
-    float n2 = hash(vec2(v_uv.x * 17.9, iTime * 0.17 + 5.3));
-    float base = iIntensity + iBass * 0.55 + iBeat * 0.75;
+    float driftX = v_uv.x + sin(iTime * 0.22 + iSourcePhase) * iSourceDrift;
+    float n = hash(vec2(driftX * 73.1 + iSourcePhase * 11.0, iTime * 0.3));
+    float n2 = hash(vec2(driftX * 17.9 + iSourcePhase * 5.0, iTime * 0.17 + 5.3));
+    float base = iIntensity + iBass * 0.55 + iBeat * 0.75 + iFlowWarp * 0.12;
     float source = clamp(base * (0.55 + 0.45 * n), 0.0, 1.0);
     heat = mix(heat, source, src * (0.35 + 0.35 * n2));
 
@@ -94,6 +99,8 @@ uniform float     iBass;
 uniform float     iBeat;
 uniform float     iTime;
 uniform float     iZoom;
+uniform float     iPaletteShift;
+uniform float     iSatBoost;
 
 in  vec2 v_uv;
 out vec4 fragColor;
@@ -129,7 +136,12 @@ void main() {
     float hShift = iBass * 0.08 * sin(uv.x * 12.0 + iTime * 2.0);
     heat = clamp(heat + hShift, 0.0, 1.0);
 
-    vec3 col = palette(heat);
+    vec3 col = palette(fract(heat + iPaletteShift));
+
+    // Gentle saturation/value modulation over long durations.
+    float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    col = mix(vec3(luma), col, 1.0 + iSatBoost * 0.35);
+    col *= 0.95 + iSatBoost * 0.12;
 
     // Beat bloom: briefly brighten
     col += iBeat * 0.25 * vec3(1.0, 0.6, 0.3);
@@ -165,8 +177,13 @@ class Curtains(BaseEffect):
             tex.repeat_x = False
             tex.repeat_y = False
             fbo = self.ctx.framebuffer(color_attachments=[tex])
-            # Seed with zeros
-            fbo.clear(0.0, 0.0, 0.0, 1.0)
+            # Seed with randomized low heat so startup state is never identical.
+            seed = np.zeros((_SIM_H, _SIM_W, 4), dtype=np.float32)
+            x_noise = self.rng.uniform(0.0, 1.0, (_SIM_H, _SIM_W)).astype(np.float32)
+            y = np.linspace(1.0, 0.0, _SIM_H, dtype=np.float32)[:, None]
+            seed[..., 0] = np.clip((0.06 + 0.08 * x_noise) * (y ** 2.2), 0.0, 1.0)
+            seed[..., 3] = 1.0
+            tex.write(seed.tobytes())
             return fbo, tex
 
         self._fbo_a, self._tex_a = _make_sim_fbo()
@@ -176,6 +193,16 @@ class Curtains(BaseEffect):
         self._bass   = 0.0
         self._beat   = 0.0
         self._treble = 0.0
+        self._source_phase = float(self.rng.uniform(0.0, 1000.0))
+        self._source_drift = float(self.rng.uniform(0.02, 0.10))
+        self._flow_warp = float(self.rng.uniform(0.0, 0.6))
+        self._palette_shift = float(self.rng.uniform(0.0, 1.0))
+        self._sat_boost = float(self.rng.uniform(0.0, 0.8))
+        self._var_timer = 0.0
+        self._var_next = float(self.rng.uniform(10.0, 18.0))
+        self._target_source_drift = self._source_drift
+        self._target_flow_warp = self._flow_warp
+        self._target_sat_boost = self._sat_boost
 
     def update(self, dt: float, audio: AudioData) -> None:
         super().update(dt, audio)
@@ -184,6 +211,22 @@ class Curtains(BaseEffect):
         if audio.beat > 0.5:
             self._beat = 1.0
         self._beat = max(0.0, self._beat - dt * 5.0)
+
+        # Slow evolving variation to avoid static long-run behavior.
+        self._source_phase += dt * 0.22
+        self._palette_shift = (self._palette_shift + dt * (0.01 + self._bass * 0.01)) % 1.0
+        self._var_timer += dt
+        if self._var_timer >= self._var_next:
+            self._var_timer = 0.0
+            self._var_next = float(self.rng.uniform(10.0, 18.0))
+            self._target_source_drift = float(self.rng.uniform(0.02, 0.18))
+            self._target_flow_warp = float(self.rng.uniform(0.0, 0.9))
+            self._target_sat_boost = float(self.rng.uniform(0.0, 1.0))
+
+        blend = min(1.0, dt * 0.45)
+        self._source_drift += (self._target_source_drift - self._source_drift) * blend
+        self._flow_warp += (self._target_flow_warp - self._flow_warp) * blend
+        self._sat_boost += (self._target_sat_boost - self._sat_boost) * blend
 
     def render(self) -> None:
         ctx = self.ctx
@@ -210,6 +253,9 @@ class Curtains(BaseEffect):
             self._sim_prog["iTreble"].value    = self._treble
             self._sim_prog["iTime"].value      = self.time
             self._sim_prog["iIntensity"].value = float(self.parameters["intensity"])
+            self._sim_prog["iSourcePhase"].value = float(self._source_phase)
+            self._sim_prog["iSourceDrift"].value = float(self._source_drift)
+            self._sim_prog["iFlowWarp"].value = float(self._flow_warp)
             self._sim_vao.render(moderngl.TRIANGLE_STRIP)
 
         # --- Display ---
@@ -237,6 +283,8 @@ class Curtains(BaseEffect):
         self._disp_prog["iBeat"].value    = self._beat
         self._disp_prog["iTime"].value    = self.time
         self._disp_prog["iZoom"].value    = float(self.parameters["zoom"])
+        self._disp_prog["iPaletteShift"].value = float(self._palette_shift)
+        self._disp_prog["iSatBoost"].value = float(self._sat_boost)
         self._disp_vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:
