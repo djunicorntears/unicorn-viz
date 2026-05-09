@@ -38,7 +38,7 @@ _DEFAULTS: dict[str, Any] = {
     "audio": {
         "device": "",
         "fft_bands": 512,
-        "buffer_seconds": 2.0,
+        "buffer_seconds": 5.0,  # Increased from 2.0s to handle GPU rendering stalls
         "reactivity": 1.5,
         "latency": "high",
         "try_alsa_loopback": False,
