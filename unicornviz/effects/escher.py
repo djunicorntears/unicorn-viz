@@ -30,6 +30,7 @@ uniform float iBass;
 uniform float iMid;
 uniform float iBeat;
 uniform float iSpeed;
+uniform float iVignette;
 
 in vec2 v_uv;
 out vec4 fragColor;
@@ -62,8 +63,10 @@ void main() {
     float tile = step(0.5, fract(id.x * 0.5 + id.y * 0.5));
     float edge = smoothstep(0.08, 0.02, abs(box(fp, vec2(0.42, 0.42))));
 
-    vec3 cA = vec3(0.95, 0.95, 0.90);
-    vec3 cB = vec3(0.05, 0.05, 0.08);
+    // Slow palette drift so the checkerboard breathes over longer runs.
+    float pal = 0.5 + 0.5 * sin(t * 0.22 + (id.x + id.y) * 0.03 + iMid * 2.0);
+    vec3 cA = mix(vec3(0.95, 0.95, 0.90), vec3(0.86, 0.90, 1.00), pal);
+    vec3 cB = mix(vec3(0.05, 0.05, 0.08), vec3(0.10, 0.04, 0.12), pal);
     vec3 col = mix(cA, cB, tile);
 
     // Outline network
@@ -73,9 +76,18 @@ void main() {
     float bands = smoothstep(0.4, 0.0, abs(sin((p.x + p.y) * 5.0 + t * 1.4)));
     col = mix(col, 1.0 - col, bands * (0.18 + iBeat * 0.35));
 
-    // Depth vignette
+    // Foreground shadow/accent lines with dynamic color/brightness/opacity.
+    float stripe = abs(fract((p.x * 0.58 - p.y * 0.36) * 10.0 + t * 0.75) - 0.5);
+    float lineMask = smoothstep(0.085, 0.0, stripe);
+    float linePulse = 0.5 + 0.5 * sin(t * 2.0 + p.x * 3.2 + p.y * 2.4);
+    vec3 lineCol = mix(vec3(0.05, 0.55, 1.0), vec3(1.0, 0.25, 0.75), linePulse);
+    float lineAlpha = (0.12 + 0.26 * linePulse + iMid * 0.15) * (0.45 + 0.55 * depth);
+    vec3 lineTarget = clamp(col + lineCol * (0.35 + iBass * 0.22), 0.0, 1.0);
+    col = mix(col, lineTarget, clamp(lineMask * lineAlpha, 0.0, 0.85));
+
+    // Depth vignette (disabled by default unless iVignette > 0)
     float vig = smoothstep(1.6, 0.25, length(uv));
-    col *= vig;
+    col *= mix(1.0, vig, clamp(iVignette, 0.0, 1.0));
 
     fragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }
@@ -88,7 +100,10 @@ class Escher(BaseEffect):
     TAGS = ["art", "optical", "audio"]
 
     def _init(self) -> None:
-        self.parameters = {"speed": 1.0}
+        self.parameters = {
+            "speed": 1.0,
+            "vignette": 0.0,
+        }
         self._prog = self._make_program(_VERT, _FRAG)
         self._vao, self._vbo = self._fullscreen_quad()
         self._bass = 0.0
@@ -110,6 +125,7 @@ class Escher(BaseEffect):
         self._prog["iMid"].value = self._mid
         self._prog["iBeat"].value = self._beat
         self._prog["iSpeed"].value = float(self.parameters["speed"])
+        self._prog["iVignette"].value = float(self.parameters.get("vignette", 0.0))
         self._vao.render(moderngl.TRIANGLE_STRIP)
 
     def destroy(self) -> None:
