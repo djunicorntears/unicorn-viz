@@ -124,8 +124,8 @@ void main() {
     col = mix(col, c3, spin * 0.7 + n2 * 0.3);
     col *= neb;
 
-    // Increased brightness and density: now up to 75% brightness
-    col = clamp(col * (0.50 + iBass * 0.35 + iMid * 0.15), 0.0, 0.75);
+    // Increased brightness and density: now up to 90% brightness
+    col = clamp(col * (0.65 + iBass * 0.35 + iMid * 0.20), 0.0, 0.90);
 
     fragColor = vec4(col, 1.0);
 }
@@ -252,9 +252,10 @@ class AudioSpectrum(BaseEffect):
         self._bar_prog  = self._make_program(_VERT_BARS, _FRAG_BARS)
         self._wave_prog = self._make_program(_VERT_WAVE, _FRAG_WAVE)
 
-        # Pre-allocate to worst-case size so we never orphan and invalidate the VAO
-        # Bars: _N_BARS bars × (6 verts/bar + 6 peak verts) × 6 floats × 4 bytes
-        bar_bytes = _N_BARS * 12 * 6 * 4
+        # Pre-allocate to worst-case size for stacked blocks (not smooth bars).
+        # Worst case: 64 bars × ~37 blocks/bar × 6 verts/block × 6 floats × 4 bytes
+        # = 64 × 37 × 6 × 6 × 4 ≈ 336 KB
+        bar_bytes = _N_BARS * 40 * 6 * 6 * 4  # Conservative upper bound
         self._bar_vbo = self.ctx.buffer(reserve=bar_bytes)
         # Wave: _N_WAVE vec2 points × 4 bytes
         wave_bytes = _N_WAVE * 2 * 4
